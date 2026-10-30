@@ -35,6 +35,11 @@ public:
 
 	std::shared_ptr<WeaponManager> weaponManager_;
 
+	int GetHP(void) { return hp_; }
+	int GetHPMax(void) { return hpMax_; }
+
+	int GetDead(void) { return isDead_; }
+
 protected:
 
 	// 最大落下速度
@@ -75,7 +80,18 @@ protected:
 	// ジャンプの入力受付時間
 	float stepJump_;
 
-	VECTOR topsVel_ = { 0.0f, 0.0f, 0.0f };
+	int hp_;
+	int hpMax_;
+
+	bool isDead_;
+
+	bool isDebug_;
+
+	// ノックバック用変数
+	// ノックバックの速度/ベクトル
+	VECTOR knockbackVel_;
+	// ノックバック継続時間タイマー
+	float knockbackTimer_;
 
 	// リソースロード
 	virtual void InitLoad(void) override;
@@ -86,7 +102,7 @@ protected:
 	virtual void UpdateProcessPost(void) = 0;
 
 	// 移動方向に応じた遅延回転
-	void DelayRotate(void);
+	virtual void DelayRotate(void);
 
 	// 重力計算
 	void CalcGravityPow(void);
@@ -96,6 +112,11 @@ protected:
 	void Collision(void);
 	void CollisionGravity(void);
 	void CollisionCapsule(void);
+
+	void KnockBack(const VECTOR& attackerPos, float power, float duration);
+	void UpdateKnockBack(void);
+
+	void UpdateDebug(void);
 
 	// 丸影描画
 	void DrawShadow(void);

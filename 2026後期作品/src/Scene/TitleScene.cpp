@@ -150,6 +150,7 @@ void TitleScene::Draw(void)
 {
 	DrawFormatString(10, 10, 0xffffff, "タイトルシーン");
 
+	DrawFormatString(10, 560, 0xffffff, "ESCキーで終了");
 }
 
 void TitleScene::Release(void)

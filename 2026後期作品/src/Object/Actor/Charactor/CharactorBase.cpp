@@ -7,6 +7,7 @@
 #include "../../Collider/ColliderCapsule.h"
 #include "../../../Manager/Resource.h"
 #include "../../../Manager/ResourceManager.h"
+#include "../../../Manager/InputManager.h"
 #include "../Weapon/WeaponManager.h"
 #include "CharactorBase.h"
 
@@ -22,6 +23,12 @@ CharactorBase::CharactorBase(void)
 	jumpPow_(AsoUtility::VECTOR_ONE),
 	prevPos_(AsoUtility::VECTOR_ONE),
 	stepJump_(0.0f),
+	knockbackVel_({}),
+	knockbackTimer_(),
+	hp_(),
+	hpMax_(),
+	isDead_(false),
+	isDebug_(false),
 	ActorBase()
 {
 }
@@ -60,6 +67,9 @@ void CharactorBase::Update(void)
 	// 各キャラクターごとの更新後処理
 	UpdateProcessPost();
 
+	UpdateKnockBack();
+
+	UpdateDebug();
 }
 
 void CharactorBase::Draw(void)
@@ -175,11 +185,63 @@ void CharactorBase::CollisionCapsule(void)
 		{
 			// 壁法線 = 押し戻し方向を正規化
 			VECTOR wallNormal = VScale(pushBack, 1.0f / pushDist);
-
-			// 衝撃速度 = 壁方向への速度成分
-			float impactSpeed = fabsf(VDot(topsVel_, wallNormal));
 		}
 
+	}
+}
+
+void CharactorBase::KnockBack(const VECTOR& attackerPos, float power, float duration)
+{
+	// 攻撃者から自身へ向かうベクトル（＝吹き飛ぶ方向）を計算
+	VECTOR dir = VSub(transform_.pos, attackerPos);
+	dir.y = 0.0f;
+
+	if (VSize(dir) > 0.001f)
+	{
+		dir = AsoUtility::VNormalize(dir);
+	}
+	else
+	{
+		// 位置が完全に重なっている場合は適当な方向（正面など）へ
+		dir = transform_.GetForward();
+	}
+
+	// ノックバックの初速と継続時間を設定
+	knockbackVel_ = VScale(dir, power);
+	knockbackTimer_ = duration;
+}
+
+void CharactorBase::UpdateKnockBack(void)
+{
+	if (knockbackTimer_ > 0.0f)
+	{
+		// ノックバックによる移動量を加算
+		transform_.pos = VAdd(transform_.pos, knockbackVel_);
+
+		// 時間経過でタイマーを減らす
+		knockbackTimer_ -= scnMng_.GetDeltaTime();
+
+		// 勢いを少しずつ減衰させる（摩擦・減速）
+		knockbackVel_ = VScale(knockbackVel_, 0.85f);
+
+		if (knockbackTimer_ <= 0.0f)
+		{
+			knockbackVel_ = AsoUtility::VECTOR_ZERO;
+		}
+	}
+}
+
+void CharactorBase::UpdateDebug(void)
+{
+	auto const& ins = InputManager::GetInstance();
+	int debugkey = ins.IsTrgDown(KEY_INPUT_1);
+	if (debugkey && !isDebug_)
+	{
+		isDebug_ = true;
+	}
+	else if (debugkey && isDebug_)
+	{
+		isDebug_ = false;
 	}
 }
 

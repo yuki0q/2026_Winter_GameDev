@@ -46,7 +46,8 @@ public:
     // デリート
 	void Delete(void);
 
-    void FireLightEffect(VECTOR& pos);
+    void FireLightEffect(const VECTOR& pos,const VECTOR& scl, const VECTOR& rot);
+    void AttackLightEffect(const VECTOR& pos,const VECTOR& scl, const VECTOR& rot);
     void TrailIdleStart(TopBase* top, const int type);
     void TrailDashStart(TopBase* top, const int type);
     void TrailUpdate(TopBase* top, VECTOR& pos);
@@ -62,24 +63,10 @@ private:
 
     // 火花エフェクト
     int effFireLight_;
-
-    // コマの軌跡エフェクトハンドル
-    int effTrailIdleBlue_;
-    int effTrailDashBlue_;
-    int effTrailIdleGreen_;
-    int effTrailDashGreen_;
-    int effTrailIdleYellow_;
-    int effTrailDashYellow_;
-    int effTrailIdleRed_;
-    int effTrailDashRed_;
-
-    // スキルエフェクト
-    int effAttack_;
-    int effShield_;
-    int effStamina_;
-    int effBalance_;
+    int effAttackLight_;
 
     int playFireLight_;
+    int playAtackLight_;
 
     int playNowTrail_;
 

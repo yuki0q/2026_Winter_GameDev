@@ -1,0 +1,11 @@
+﻿# 武器1本ごとのパラメータ（装着位置・攻撃判定・ダメージ）,,,,,,,,,,,,,
+# slot: RIGHT_HAND / LEFT_HAND / BACK    rot は度で指定,,,,,,,,,,,,,
+# colTopY/colDownY/colRadius: 攻撃判定カプセル（盾など攻撃しない武器は 0）,,,,,,,,,,,,,
+weapon,slot,attachFrame,scale,posX,posY,posZ,rotXDeg,rotYDeg,rotZDeg,colTopY,colDownY,colRadius,damage
+SWORD,RIGHT_HAND,43,0.008,-0.1,-0.005,-0.08,45,15,-60,35,150,15,10
+SHIELD,LEFT_HAND,12,0.02,0.055,-0.05,0.05,90,45,0,0,0,0,0
+E_AXE,RIGHT_HAND,40,0.016,-0.1,-0.005,-0.008,45,15,-60,200,70,100,25
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+,,,,,,,,,,,, ,

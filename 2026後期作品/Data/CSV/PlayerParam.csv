@@ -1,0 +1,2 @@
+TYPE,HP,SCALE,startX,startY,startZ,localX,localY,localZ,knockbackPower,knockbackTime,lineTopY,capsuleTopY,capsuleDownY,capsuleRadius,mainWeapon,subWeapon
+PLAYER,100,1,0,300,0,100,0,100,10,0.2,120,160,25,25,SWORD,SHIELD

@@ -1,0 +1,19 @@
+TYPE,NAME,SPEED,PATH
+COMMON,IDLE,30,Charactor/Player/idle.mv1
+COMMON,RUN,30,Charactor/Player/run.mv1
+COMMON,FAST_RUN,30,Charactor/Player/Run To Stop.mv1
+COMMON,AVOID,90,Charactor/Player/avoid.mv1
+COMMON,WALK,30,Charactor/Player/walk.mv1
+COMMON,DAMAGE,60,Charactor/Player/hit.mv1
+COMMON,DIE,60,Charactor/Player/dead.mv1
+SWORD,PARRY,30,Charactor/Player/ShortSword/parry.mv1
+SWORD,PARRYED,20,Charactor/Player/ShortSword/parryed.mv1
+SWORD,PARRY_ATTACK,60,Charactor/Player/ShortSword/parryAttack.mv1
+SWORD,WEAPON_RUN,30,Charactor/Player/ShortSword/shortSwordRun.mv1
+SWORD,UNSHEATHED,30,Charactor/Player/ShortSword/unsheathedSword.mv1
+SWORD,SHEATHING,30,Charactor/Player/ShortSword/sheathingSword.mv1
+SWORD,ATTACK_1,45,Charactor/Player/ShortSword/swordSlash_1.mv1
+SWORD,ATTACK_2,45,Charactor/Player/ShortSword/swordSlash_2.mv1
+SWORD,ATTACK_3,60,Charactor/Player/ShortSword/swordSlash_3.mv1
+SWORD,ATTACK_4,60,Charactor/Player/ShortSword/swordSlash_4.mv1
+SWORD,DASH_ATTACK,60,Charactor/Player/ShortSword/swordDashAttack2.mv1

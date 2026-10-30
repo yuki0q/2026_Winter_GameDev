@@ -1,0 +1,6 @@
+﻿# アイテムの配置,,,,
+# timing: START=ゲーム開始時 / CLEAR=敵を全滅させた時,,,,
+type,timing,x,y,z
+HP_POTION,START,500,80,200
+JEWEL,START,-200,80,300
+GOLD,CLEAR,0,100,1000

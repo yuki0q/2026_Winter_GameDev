@@ -38,13 +38,31 @@ void ResourceManager::Init(void)
 
 	// ÉvÉåÉCÉÑÅ[
 	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Player/player.mv1");
-	resourcesMap_.emplace(SRC::PLAYER, res);
+	resourcesMap_.emplace(SRC::MDL_PLAYER, res);
 
 	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Weapon/sword.mv1");
-	resourcesMap_.emplace(SRC::SWORD, res);
+	resourcesMap_.emplace(SRC::MDL_SWORD, res);
 
 	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Weapon/shield.mv1");
-	resourcesMap_.emplace(SRC::SHIELD, res);
+	resourcesMap_.emplace(SRC::MDL_SHIELD, res);
+
+	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Weapon/greatSword/GreatSword.mv1");
+	resourcesMap_.emplace(SRC::MDL_GREAT_SWORD, res);
+
+	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Weapon/Axe/Axe.mv1");
+	resourcesMap_.emplace(SRC::MDL_AXE, res);
+
+	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Enemy/Alter/alter2.mv1");
+	resourcesMap_.emplace(SRC::MDL_ALTER, res);
+
+	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Enemy/Ogre/ogre.mv1");
+	resourcesMap_.emplace(SRC::MDL_OGRE, res);
+
+	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Item/Top.mv1");
+	resourcesMap_.emplace(SRC::MDL_POTION, res);
+
+	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Item/Gold.mv1");
+	resourcesMap_.emplace(SRC::MDL_GOLD, res);
 
 	res = new RES(RES_T::MODEL, PATH_MDL + "Stage/MainPlanet.mv1");
 	resourcesMap_.emplace(SRC::MAIN_STAGE, res);

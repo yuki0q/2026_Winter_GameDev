@@ -12,9 +12,15 @@ public:
 	enum class SRC
 	{
 		TITLE_IMG,
-		PLAYER,
-		SWORD,
-		SHIELD,
+		MDL_PLAYER,
+		MDL_SWORD,
+		MDL_SHIELD,
+		MDL_GREAT_SWORD,
+		MDL_AXE,
+		MDL_ALTER,
+		MDL_OGRE,
+		MDL_POTION,
+		MDL_GOLD,
 		MAIN_STAGE,
 	};
 

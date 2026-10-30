@@ -1,0 +1,11 @@
+newmtl tripo_material_6a024310_e5cc_4768_af48_265b24c4cf20
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd fantasy+game+character+3d+model_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr fantasy+game+character+3d+model_roughness.png
+map_Pm fantasy+game+character+3d+model_metallic.png
+norm fantasy+game+character+3d+model_normal.png
+

@@ -1,0 +1,5 @@
+﻿# メイン武器の種類ごとの動きのパラメータ,,,,,,,
+weapon,walkSpeed,dashSpeed,attackMove,parryAttackMove,parryedBackSpeed,comboMax,comboGraceTime
+SWORD,5,15,4,4,20,4,1
+# 大剣を追加する場合の例（weapon_param.csv と player_anim.csv にも行が必要）,,,,,,,
+# GREAT_SWORD,3.5,10,6,6,12,3,1.5

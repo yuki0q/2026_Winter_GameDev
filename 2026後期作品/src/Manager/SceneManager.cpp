@@ -1,15 +1,38 @@
 #include <chrono>
+#include <cmath>
+#include <string>
 #include <DxLib.h>
 #include <EffekseerForDXLib.h>
 #include "../Common/Fader.h"
 #include "../Scene/TitleScene.h"
 #include "../Scene/GameScene.h"
 #include "../Scene/PauseScene.h"
+#include "../Scene/GameOverScene.h"
+#include "../Scene/ClearScene.h"
 #include "Camera.h"
 //#include "ResourceManager.h"
 #include "SceneManager.h"
 
 SceneManager* SceneManager::instance_ = nullptr;
+
+namespace
+{
+	// 新シーン生成後に、ロード画面の裏で Update を回すフレーム数
+	// （位置・カメラ・武器の取り付けなどを落ち着かせる。多いほど安定するが、その間ゲームが進む）
+	const int WARMUP_FRAMES = 10;
+
+	// ロード画面の最低表示時間（秒）。一瞬で消えてチラつくのを防ぐ
+	const float LOADING_MIN_TIME = 0.8f;
+
+	// ロード画面のフォントサイズ
+	const int LOADING_FONT_SIZE = 32;
+
+	// スピナー（回転する点）の設定
+	const int   SPINNER_DOT_NUM = 12;
+	const float SPINNER_RADIUS = 36.0f;
+	const float SPINNER_DOT_SIZE = 5.0f;
+	const float SPINNER_SPEED = 12.0f;	// 1秒あたりに進む点の数
+}
 
 void SceneManager::CreateInstance()
 {
@@ -48,9 +71,31 @@ void SceneManager::Init(void)
 	// 3D用の設定
 	Init3D();
 
+	// ロード画面
+	loadPhase_ = LOAD_PHASE::NONE;
+	loadTimer_ = 0.0f;
+	loadAnimTimer_ = 0.0f;
+	warmupCount_ = 0;
+	isWarmingUp_ = false;
+	loadingFont_ = CreateFontToHandle(nullptr, LOADING_FONT_SIZE, 3, DX_FONTTYPE_ANTIALIASING);
+
+	//// オフスクリーン(メイン描画先)
+	//int sx, sy;
+	//GetDrawScreenSize(&sx, &sy);
+	//mainScreen_ = MakeScreen(sx, sy, FALSE);
+
+	//// カメラシェイク用シェーダー
+	//shakePs_ = LoadPixelShader("Data/Shader/CameraShake.pso");
+	//shakeCbuf_ = CreateShaderConstantBuffer(sizeof(float) * 4);
+
 	// 初期シーンの設定
 	DoChangeScene(SCENE_ID::TITLE);
 	//DoChangeScene(SCENE_ID::GAME);
+
+	mainScreen_ = -1;
+	shakePs_ = -1;
+	shakeCbuf_ = -1;
+	shakePower_ = 0.0f;
 }
 
 void SceneManager::Init3D(void)
@@ -100,7 +145,12 @@ void SceneManager::Update(void)
 
 	// フェード機能の更新
 	fader_->Update();
-	if (isSceneChanging_)
+	if (loadPhase_ != LOAD_PHASE::NONE)
+	{
+		// ロード画面中（新シーンの生成・準備更新）
+		UpdateLoading();
+	}
+	else if (isSceneChanging_)
 	{
 		// フェード状態の切替処理
 		Fade();
@@ -132,6 +182,13 @@ void SceneManager::Draw(void)
 
 	// 画面を初期化
 	ClearDrawScreen();
+
+	// ロード画面中はシーンを描画せず、ロード画面だけを表示する
+	if (loadPhase_ != LOAD_PHASE::NONE)
+	{
+		DrawLoading();
+		return;
+	}
 
 	// カメラ設定
 	camera_->SetBeforeDraw();
@@ -171,7 +228,6 @@ void SceneManager::Draw(void)
 
 void SceneManager::Destroy(void)
 {
-
 	// シーンの解放
 	if (scene_ != nullptr)
 	{
@@ -183,20 +239,29 @@ void SceneManager::Destroy(void)
 		delete pauseScene_;
 	}
 
+	// ロード画面用フォントの解放
+	if (loadingFont_ != -1)
+	{
+		DeleteFontToHandle(loadingFont_);
+	}
+
 	// フェード機能の解放
 	delete fader_;
 
 	camera_->Release();
 	delete camera_;
 
-
 	// インスタンスのメモリ解放
 	delete instance_;
-
 }
 
 void SceneManager::ChangeScene(SCENE_ID nextId)
 {
+	// ロード画面中（準備更新を含む）の遷移要求は無視する
+	if (isWarmingUp_ || loadPhase_ != LOAD_PHASE::NONE)
+	{
+		return;
+	}
 
 	// フェード処理が終わってからシーンを変える場合もあるため、
 	// 遷移先シーンをメンバ変数に保持
@@ -214,7 +279,6 @@ void SceneManager::ChangeScene(SCENE_ID nextId)
 		fader_->SetFade(Fader::STATE::FADE_OUT);
 		isSceneChanging_ = true;
 	}
-
 }
 
 SceneManager::SCENE_ID SceneManager::GetSceneID(void)
@@ -233,7 +297,17 @@ Camera* SceneManager::GetCamera(void) const
 	return camera_;
 }
 
+void SceneManager::SetShakePower(float power)
+{
+	shakePower_ = power;
+}
+
 SceneManager::SceneManager(void)
+	:
+	mainScreen_(),
+	shakePs_(),
+	shakeCbuf_(),
+	shakePower_()
 {
 
 	sceneId_ = SCENE_ID::NONE;
@@ -250,6 +324,12 @@ SceneManager::SceneManager(void)
 
 	camera_ = nullptr;
 
+	loadPhase_ = LOAD_PHASE::NONE;
+	loadTimer_ = 0.0f;
+	loadAnimTimer_ = 0.0f;
+	warmupCount_ = 0;
+	isWarmingUp_ = false;
+	loadingFont_ = -1;
 }
 
 void SceneManager::ResetDeltaTime(void)
@@ -286,8 +366,6 @@ void SceneManager::DoChangeScene(SCENE_ID sceneId)
 		return;
 	}
 
-	
-
 	// シーンを変更する
 	sceneId_ = sceneId;
 
@@ -309,6 +387,12 @@ void SceneManager::DoChangeScene(SCENE_ID sceneId)
 	case SCENE_ID::PAUSE:
 		scene_ = new PauseScene();
 		break;
+	case SCENE_ID::GAMEOVER:
+		scene_ = new GameOverScene();
+		break;
+	case SCENE_ID::CLEAR:
+		scene_ = new ClearScene();
+		break;
 	case SCENE_ID::DEBUG:
 		//scene_ = new DebugScene();
 		break;
@@ -325,7 +409,6 @@ void SceneManager::DoChangeScene(SCENE_ID sceneId)
 
 void SceneManager::Fade(void)
 {
-
 	Fader::STATE fState = fader_->GetState();
 	switch (fState)
 	{
@@ -342,12 +425,102 @@ void SceneManager::Fade(void)
 		// 暗転中
 		if (fader_->IsEnd())
 		{
-			// 完全に暗転してからシーン遷移
-			DoChangeScene(waitSceneId_);
-			// 暗転から明転へ
-			fader_->SetFade(Fader::STATE::FADE_IN);
+			// 完全に暗転したらロード画面へ移る
+			// （新シーンの生成は、ロード画面を1フレーム描画した後 UpdateLoading で行う）
+			loadPhase_ = LOAD_PHASE::PREPARE;
+			loadTimer_ = 0.0f;
+			loadAnimTimer_ = 0.0f;
 		}
 		break;
 	}
+}
 
+
+void SceneManager::UpdateLoading(void)
+{
+	loadAnimTimer_ += deltaTime_;
+
+	switch (loadPhase_)
+	{
+	case LOAD_PHASE::PREPARE:
+		// 前フレームでロード画面を描画済み
+		// ここで新シーンを生成・初期化する（時間がかかる処理）
+		DoChangeScene(waitSceneId_);
+
+		loadPhase_ = LOAD_PHASE::WARMUP;
+		loadTimer_ = 0.0f;
+		warmupCount_ = 0;
+		break;
+
+	case LOAD_PHASE::WARMUP:
+
+		loadTimer_ += deltaTime_;
+
+		// ロード画面で隠したまま新シーンを数フレーム更新して、状態を落ち着かせる
+		if (warmupCount_ < WARMUP_FRAMES)
+		{
+			isWarmingUp_ = true;
+			if (scene_ != nullptr)
+			{
+				scene_->Update();
+			}
+			isWarmingUp_ = false;
+			warmupCount_++;
+		}
+
+		// 準備更新が終わり、最低表示時間も経過したら明転へ
+		if (warmupCount_ >= WARMUP_FRAMES && loadTimer_ >= LOADING_MIN_TIME)
+		{
+			loadPhase_ = LOAD_PHASE::NONE;
+			ResetDeltaTime();
+
+			// 暗転状態から明転へ（isSceneChanging_ は明転終了まで true のまま）
+			fader_->SetFade(Fader::STATE::FADE_IN);
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+void SceneManager::DrawLoading(void)
+{
+	int sx, sy;
+	GetDrawScreenSize(&sx, &sy);
+
+	// 背景（暗転と同じ黒にして、切り替わりを目立たせない）
+	DrawBox(0, 0, sx, sy, GetColor(0, 0, 0), TRUE);
+
+	// 回転するスピナー
+	const float cx = static_cast<float>(sx) * 0.5f;
+	const float cy = static_cast<float>(sy) * 0.5f - 30.0f;
+	const int head = static_cast<int>(loadAnimTimer_ * SPINNER_SPEED) % SPINNER_DOT_NUM;
+
+	for (int i = 0; i < SPINNER_DOT_NUM; i++)
+	{
+		float angle = DX_TWO_PI_F * static_cast<float>(i) / SPINNER_DOT_NUM - DX_PI_F * 0.5f;
+
+		// 先頭の点ほど明るく、後ろの点ほど暗くする
+		int behind = (head - i + SPINNER_DOT_NUM) % SPINNER_DOT_NUM;
+		int bright = 255 - behind * (220 / SPINNER_DOT_NUM);
+
+		DrawCircleAA(
+			cx + cosf(angle) * SPINNER_RADIUS,
+			cy + sinf(angle) * SPINNER_RADIUS,
+			SPINNER_DOT_SIZE, 16, GetColor(bright, bright, bright), TRUE);
+	}
+
+	// 「NOW LOADING」と、増えていくドット
+	// 文字位置がドットの数でずれないよう、最大幅の文字列で左端を決める
+	const std::string fullText = "NOW LOADING...";
+	const int dotNum = static_cast<int>(loadAnimTimer_ * 3.0f) % 4;
+	const std::string text = "NOW LOADING" + std::string(dotNum, '.');
+
+	const int textWidth = GetDrawStringWidthToHandle(
+		fullText.c_str(), static_cast<int>(fullText.size()), loadingFont_);
+	const int textX = (sx - textWidth) / 2;
+	const int textY = static_cast<int>(cy + SPINNER_RADIUS) + 40;
+
+	DrawStringToHandle(textX, textY, text.c_str(), GetColor(255, 255, 255), loadingFont_);
 }

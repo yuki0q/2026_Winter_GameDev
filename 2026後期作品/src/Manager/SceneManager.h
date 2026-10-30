@@ -25,6 +25,8 @@ public:
 		TITLE,
 		GAME,
 		PAUSE,
+		GAMEOVER,
+		CLEAR,
 		DEBUG,
 	};
 
@@ -61,6 +63,9 @@ public:
 	// カメラの取得
 	Camera* GetCamera(void) const;
 
+	// カメラシェイクの強さを設定
+	void SetShakePower(float power);
+
 private:
 
 	// 静的インスタンス
@@ -86,6 +91,26 @@ private:
 	// シーン遷移中判定
 	bool isSceneChanging_;
 
+	// シェイク用
+	int shakePs_;          // ピクセルシェーダー
+	int shakeCbuf_;        // 定数バッファ
+	float shakePower_;     // 現在の強さ(UV単位)
+
+	// ロード画面の進行段階
+	enum class LOAD_PHASE
+	{
+		NONE,		// ロード画面ではない
+		PREPARE,	// ロード画面を1フレーム描画するための待ち
+		WARMUP,		// 新シーン生成後の準備更新・最低表示時間の待ち
+	};
+
+	LOAD_PHASE loadPhase_;
+	float loadTimer_;		// 新シーン生成後の経過時間
+	float loadAnimTimer_;	// ロード画面のアニメーション用
+	int warmupCount_;		// 準備更新を行った回数
+	bool isWarmingUp_;		// 準備更新中（この間の遷移要求は無視する）
+	int loadingFont_;		// ロード画面用フォント
+
 	// デルタタイム
 	std::chrono::system_clock::time_point preTime_;
 	float deltaTime_;
@@ -109,4 +134,7 @@ private:
 	// フェード
 	void Fade(void);
 
+	// ロード画面の更新・描画
+	void UpdateLoading(void);
+	void DrawLoading(void);
 };

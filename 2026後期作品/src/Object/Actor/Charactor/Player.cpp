@@ -11,49 +11,99 @@
 #include "../Weapon/WeaponManager.h"
 #include "../Weapon/WeaponSword.h"
 #include "../Weapon/WeaponShield.h"
+#include <map>
 
 namespace
 {
-	const float WALK_SPEED = 5.0f;
-	const float DASH_SPEED = 15.0f;
-	const VECTOR SWORD_SCL = { 0.008f,0.008f,0.008f };
-	const VECTOR SHIELD_SCL = { 0.02f ,0.02f ,0.02f };
-	const VECTOR SWORD_LOCALPOS = { -0.1f ,-0.005f ,-0.08f };
-	const VECTOR SWORD_LOCALROT = { DX_PI_F / 4.0f ,DX_PI_F / 12.0f ,-DX_PI_F / 3.0f };
-	const VECTOR SHIELD_LOCALPOS = { 0.055f ,-0.05f ,0.05f };
-	const VECTOR SHIELD_LOCALROT = { DX_PI_F / 2.0f ,DX_PI_F / 4.0f,0.0f };
+	// 武器種別から装備するモデルのリソースを決める
+	// 武器を増やす時は ResourceManager::SRC にモデルを登録して、ここに case を足す
+	bool GetWeaponModelSrc(WEAPON_TYPE type, ResourceManager::SRC& outSrc)
+	{
+		switch (type)
+		{
+		case WEAPON_TYPE::SWORD:
+			outSrc = ResourceManager::SRC::MDL_SWORD;
+			return true;
+		case WEAPON_TYPE::SHIELD:
+			outSrc = ResourceManager::SRC::MDL_SHIELD;
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	// 武器種別から武器クラスを生成
+	std::shared_ptr<WeaponBase> CreateWeapon(WEAPON_TYPE type)
+	{
+		switch (type)
+		{
+		case WEAPON_TYPE::SWORD:
+			return std::make_shared<WeaponSword>();
+		case WEAPON_TYPE::SHIELD:
+			return std::make_shared<WeaponShield>();
+		default:
+			return nullptr;
+		}
+	}
+
+	// CSV上のスロット名から WEAPON_SLOT へ
+	WEAPON_SLOT SlotFromName(const std::string& name)
+	{
+		if (name == "LEFT_HAND") return WEAPON_SLOT::LEFT_HAND;
+		if (name == "BACK")      return WEAPON_SLOT::BACK;
+		return WEAPON_SLOT::RIGHT_HAND;
+	}
+
+	// 武器モデルの複製を読み込む（モデルが登録されていなければ -1）
+	int LoadWeaponModel(WEAPON_TYPE type)
+	{
+		ResourceManager::SRC src;
+		if (!GetWeaponModelSrc(type, src))
+		{
+			return -1;
+		}
+		return ResourceManager::GetInstance().LoadModelDuplicate(src);
+	}
 }
 
 Player::Player(void)
 	:
-	swordHandle_(),
-	shieldHandle_(),
+	mainWeaponType_(WEAPON_TYPE::NONE),
+	subWeaponType_(WEAPON_TYPE::NONE),
+	mainHandle_(-1),
+	subHandle_(-1),
 	isParry_(false),
-	isAttack1_(false),
 	currentState_(),
 	isDashEnable_(true),
 	attackStep_(),
-	hasComboInput_(false)
+	parryedBackSpeed_(),
+	hasComboInput_(false),
+	comboTimer_(0.0f),
+	lastAttackStep_(0),
+	isWarning_(false)
 {
+	// CSVからパラメータを取得（Init()より前に確定させる）
+	param_ = PlayerDataTable::GetParam();
+	mainWeaponType_ = NameToWeaponType(param_.mainWeapon);
+	subWeaponType_ = NameToWeaponType(param_.subWeapon);
+
+	// メイン武器の種類に応じた動きのパラメータ
+	style_ = PlayerDataTable::GetStyle(param_.mainWeapon);
 }
 
 Player::~Player(void)
 {
 }
 
-void Player::Update(void)
-{
-	CharactorBase::Update();
-
-	weaponManager_->Update();
-}
-
 void Player::Draw(void)
 {
+	if (isDead_) return;
+
 	CharactorBase::Draw();
 
 	weaponManager_->Draw();
 
+	if (!isDebug_)return;
 	DrawDegug();
 }
 
@@ -62,26 +112,106 @@ void Player::Release(void)
 	CharactorBase::Release();
 	weaponManager_->Release();
 
-	MV1DeleteModel(swordHandle_);
-	MV1DeleteModel(shieldHandle_);
+	if (mainHandle_ != -1) { MV1DeleteModel(mainHandle_); }
+	if (subHandle_ != -1) { MV1DeleteModel(subHandle_); }
+}
+
+void Player::OnDamage(int damage ,VECTOR attackedPos)
+{
+	if (hp_ <= 0 || (currentState_ == STATE::DAMAGE) || (currentState_ == STATE::PARRYATTACK)
+		|| (currentState_ == STATE::AVOID)) return;
+
+	hp_ -= damage;
+	if (hp_ <= 0)
+	{
+		hp_ = 0;
+		ChangeState(STATE::DIE);
+	}
+	else
+	{
+		// ダメージを受けたときにDAMAGEステートに移行する
+		ChangeState(STATE::DAMAGE);
+
+		KnockBack(attackedPos, param_.knockbackPower, param_.knockbackTime);
+	}
+}
+
+void Player::InDamage(int damage)
+{
+	if (hp_ <= 0 || (currentState_ == STATE::DAMAGE) || (currentState_ == STATE::PARRYATTACK)
+		|| (currentState_ == STATE::AVOID)) return;
+
+	hp_ -= damage;
+	if (hp_ <= 0)
+	{
+		hp_ = 0;
+		ChangeState(STATE::DIE);
+	}
+	else
+	{
+		// ダメージを受けたときにDAMAGEステートに移行する
+		ChangeState(STATE::DAMAGE);
+	}
+}
+
+void Player::AddHP(int addDamage)
+{
+	if (hp_ <= 0)return;
+	hp_ += addDamage;
+
+	if (hp_ >= hpMax_)
+	{
+		hp_ = hpMax_;
+		ChangeState(STATE::IDLE);
+	}
+}
+
+void Player::SetPosition(const VECTOR& pos)
+{
+	transform_.pos = pos;
+	transform_.Update();
+}
+
+void Player::ClearParry(void)
+{
+	isParry_ = true;
+}
+
+void Player::LookAt(const VECTOR& targetPos)
+{
+	VECTOR dir = VSub(targetPos, transform_.pos);
+	dir.y = 0.0f; // Y軸方向の傾きを無視して水平方向のみにする
+
+	if (VSize(dir) > 0.001f)
+	{
+		dir = AsoUtility::VNormalize(dir);
+
+		// 方向ベクトルからクォータニオンの回転を作成して反映
+		float angle = atan2f(dir.x, dir.z);
+		transform_.quaRot = Quaternion::AngleAxis(angle, AsoUtility::AXIS_Y);
+		transform_.Update();
+	}
 }
 
 void Player::InitLoad(void)
 {
 	transform_.SetModel(resMng_.LoadModelDuplicate(
-		ResourceManager::SRC::PLAYER));
+		ResourceManager::SRC::MDL_PLAYER));
 	
 	weaponManager_ = std::make_shared<WeaponManager>();
 
-	swordHandle_ = resMng_.LoadModelDuplicate(
-		ResourceManager::SRC::SWORD);
-
-	shieldHandle_ = resMng_.LoadModelDuplicate(
-		ResourceManager::SRC::SHIELD);
+	// 武器モデル（種類は player_param.csv の mainWeapon / subWeapon）
+	mainHandle_ = LoadWeaponModel(mainWeaponType_);
+	subHandle_ = LoadWeaponModel(subWeaponType_);
 }
 
 void Player::UpdateProcess(void)
 {
+	if (isDead_) return;
+
+	// コンボ猶予時間の経過
+	UpdateComboTimer();
+
 	movePow_ = AsoUtility::VECTOR_ZERO;
 	moveSpeed_ = 0.0f;
 
@@ -97,17 +227,65 @@ void Player::UpdateProcess(void)
 	case STATE::RUN:    
 		UpdateRun();    
 		break;
+	case STATE::AVOID:
+		UpdateAvoid();    
+		break;
 	case STATE::ATTACK: 
 		UpdateAttack();
 		break;
 	case STATE::PARRY: 
 		UpdateParry();  
 		break;
+	case STATE::PARRYED: 
+		UpdateParryed();  
+		break;
+	case STATE::PARRYATTACK:
+		UpdateParryAttack();
+		break;
+	case STATE::DAMAGE: 
+		UpdateDamage();  
+		break;
+	case STATE::DIE: 
+		UpdateDie();  
+		break;
+	case STATE::END: 
+		UpdateEnd();  
+		break;
+	}
+}
+
+void Player::UpdateComboTimer(void)
+{
+	if (comboTimer_ <= 0.0f)
+	{
+		return;
 	}
 
-		/*ProcessMove();
-		ProcessAttack();
-		ProcessParry();*/
+	comboTimer_ -= scnMng_.GetDeltaTime();
+
+	// 猶予切れでコンボのカウントをリセット
+	if (comboTimer_ <= 0.0f)
+	{
+		ResetCombo();
+	}
+}
+
+int Player::GetStartAttackStep(void) const
+{
+	// 猶予中で、まだ続きの段がある場合は、前回の次の段から再開
+	if (comboTimer_ > 0.0f &&
+		lastAttackStep_ >= 1 && lastAttackStep_ < style_.comboMax)
+	{
+		return lastAttackStep_ + 1;
+	}
+
+	return 1;
+}
+
+void Player::ResetCombo(void)
+{
+	comboTimer_ = 0.0f;
+	lastAttackStep_ = 0;
 }
 
 void Player::ChangeState(STATE state)
@@ -118,14 +296,20 @@ void Player::ChangeState(STATE state)
 	{
 	case STATE::IDLE:
 		animController_->Play(static_cast<int>(ANIM_TYPE::IDLE), true);
+		moveDir_ = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
 		break;
 	case STATE::WALK:
 		animController_->Play(static_cast<int>(ANIM_TYPE::WALK), true);
 		break;
 	case STATE::RUN:
-		animController_->Play(static_cast<int>(ANIM_TYPE::SS_RUN), true);
+		animController_->Play(static_cast<int>(ANIM_TYPE::WEAPON_RUN), true);
+		break;
+	case STATE::AVOID:
+		animController_->Play(static_cast<int>(ANIM_TYPE::AVOID), false);
 		break;
 	case STATE::ATTACK:
+		// 猶予からの再開でも新規でも、攻撃中は猶予を使わない（終了時に改めて設定する）
+		comboTimer_ = 0.0f;
 		// 攻撃開始時にダッシュ入力をリセット
 		isDashEnable_ = false; 
 		// 先行入力フラグをクリア
@@ -134,31 +318,56 @@ void Player::ChangeState(STATE state)
 		// 攻撃ステップに応じたアニメーションの再生
 		if (attackStep_ == 0)
 		{
-			animController_->Play(static_cast<int>(ANIM_TYPE::SS_DASHATTACK), false);
+			animController_->Play(static_cast<int>(ANIM_TYPE::DASHATTACK), false);
 		}
 		if (attackStep_ == 1)
 		{
-			animController_->Play(static_cast<int>(ANIM_TYPE::SS_ATTACK_1), false);
+			animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_1), false);
 		}
 		else if (attackStep_ == 2)
 		{
-			animController_->Play(static_cast<int>(ANIM_TYPE::SS_ATTACK_2), false);
+			animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_2), false);
 		}
 		else if (attackStep_ == 3)
 		{
-			animController_->Play(static_cast<int>(ANIM_TYPE::SS_ATTACK_3), false);
+			animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_3), false);
 		}
 		else if (attackStep_ == 4)
 		{
-			animController_->Play(static_cast<int>(ANIM_TYPE::SS_ATTACK_4), false);
+			animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_4), false);
 		}
 
 		break;
 	case STATE::PARRY:
-		animController_->Play(static_cast<int>(ANIM_TYPE::SS_PARRY), false);
+		animController_->Play(static_cast<int>(ANIM_TYPE::PARRY), false);
 		isDashEnable_ = false;
 		break;
+	case STATE::PARRYED:
+		animController_->Play(static_cast<int>(ANIM_TYPE::PARRYED), false);
+		parryedBackSpeed_ = style_.parryedBackSpeed;
+		moveDir_ = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
+		isDashEnable_ = false;
+		break;
+	case STATE::PARRYATTACK:
+		animController_->Play(static_cast<int>(ANIM_TYPE::PARRYATTACK), false);
+		isDashEnable_ = false;
+		break;
+	case STATE::DAMAGE:
+		animController_->Play(static_cast<int>(ANIM_TYPE::DAMAGE), false);
+		// 攻撃終了時は判定をオフにする
+		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
+		isDashEnable_ = false;
+		break;
+	case STATE::DIE:
+		animController_->Play(static_cast<int>(ANIM_TYPE::DIE), false);
+		// 攻撃終了時は判定をオフにする
+		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
+		break;
+	case STATE::END:
+		break;
 	}
+
+	isParry_ = false;
 }
 
 VECTOR Player::GetInputDirection(bool& IsDash)
@@ -192,7 +401,7 @@ VECTOR Player::GetInputDirection(bool& IsDash)
 			IsDash = true;
 		}
 
-		if (ins.IsNew(KEY_INPUT_RETURN)) { transform_.pos = DEFAULT_POS; }
+		if (ins.IsNew(KEY_INPUT_RETURN)) { transform_.pos = param_.startPos; }
 	}
 	else
 	{
@@ -231,7 +440,7 @@ void Player::UpdateIdle(void)
 	// 攻撃優先（クリック）
 	if (ins.IsTrgMouseLeft())
 	{
-		attackStep_ = 1; // 1段目から開始
+		attackStep_ = GetStartAttackStep(); // 通常は1段目、猶予中は続きの段から
 		ChangeState(STATE::ATTACK);
 		return;
 	}
@@ -246,9 +455,22 @@ void Player::UpdateIdle(void)
 	// 移動
 	bool isDash = false;
 	VECTOR dir = GetInputDirection(isDash);
-	if (!AsoUtility::EqualsVZero(dir))
+	if (AsoUtility::EqualsVZero(dir))return;
+	if (isDash)
 	{
-		ChangeState(isDash ? STATE::RUN : STATE::WALK);
+		// 敵の攻撃前状態による警告を受けている場合は、ダッシュではなく回避を発動！
+		if (isWarning_)
+		{
+			ChangeState(STATE::AVOID);
+			return;
+		}
+
+		ChangeState(STATE::RUN);
+		return;
+	}
+	else if(!isDash)
+	{
+		ChangeState(STATE::WALK);
 		return;
 	}
 }
@@ -259,7 +481,7 @@ void Player::UpdateWalk(void)
 
 	if (ins.IsTrgMouseLeft())
 	{
-		attackStep_ = 1; // 1段目から開始
+		attackStep_ = GetStartAttackStep(); // 通常は1段目、猶予中は続きの段から
 		ChangeState(STATE::ATTACK);
 		return;
 	}
@@ -280,11 +502,18 @@ void Player::UpdateWalk(void)
 
 	if (isDash)
 	{
+		// 敵の攻撃前状態による警告を受けている場合は、ダッシュではなく回避を発動！
+		if (isWarning_)
+		{
+			ChangeState(STATE::AVOID);
+			return;
+		}
+
 		ChangeState(STATE::RUN);
 		return;
 	}
 
-	MoveDirection(dir, WALK_SPEED);
+	MoveDirection(dir, style_.walkSpeed);
 }
 
 void Player::UpdateRun(void)
@@ -318,13 +547,58 @@ void Player::UpdateRun(void)
 		return;
 	}
 
-	MoveDirection(dir, DASH_SPEED);
+	MoveDirection(dir, style_.dashSpeed);
+}
+
+void Player::UpdateAvoid(void)
+{
+	auto& ins = InputManager::GetInstance();
+
+	// 攻撃優先（クリック）
+	if (ins.IsTrgMouseLeft())
+	{
+		attackStep_ = GetStartAttackStep(); // 通常は1段目、猶予中は続きの段から
+		ChangeState(STATE::ATTACK);
+		return;
+	}
+
+	// パリィ優先（Spaceキー）
+	if (ins.IsTrgDown(KEY_INPUT_SPACE))
+	{
+		ChangeState(STATE::PARRY);
+		return;
+	}
+	
+	bool isDash = false;
+	VECTOR dir = GetInputDirection(isDash);
+	MoveDirection(dir, style_.dashSpeed);
+
+	if (!animController_->IsEnd())return;
+	
+	if (AsoUtility::EqualsVZero(dir))
+	{
+		ChangeState(STATE::IDLE);
+		return;
+	}
+
+	if (!AsoUtility::EqualsVZero(dir))
+	{
+		ChangeState(isDash ? STATE::RUN : STATE::WALK);
+		return;
+	}
 }
 
 void Player::UpdateAttack(void)
 {	
 	// 攻撃中は武器の当たり判定を有効化
 	weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, true);
+
+	if (attackStep_ == 0 || attackStep_ == 4)
+	{
+		VECTOR forward = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
+		VECTOR attackMove = VScale(forward, style_.attackMove);
+		transform_.pos = VAdd(transform_.pos, attackMove);
+	}
 
 	auto& ins = InputManager::GetInstance();
 
@@ -336,6 +610,16 @@ void Player::UpdateAttack(void)
 	{
 		attackStep_ = 0;
 		hasComboInput_ = false;
+		ResetCombo();
+		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
+
+		// 敵の攻撃前状態による警告を受けている場合は、ダッシュではなく回避を発動！
+		if (isWarning_)
+		{
+			ChangeState(STATE::AVOID);
+			return;
+		}
+
 		ChangeState(STATE::RUN);
 		return;
 	}
@@ -345,12 +629,14 @@ void Player::UpdateAttack(void)
 	{
 		attackStep_ = 0;
 		hasComboInput_ = false;
+		ResetCombo();
+		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
 		ChangeState(STATE::PARRY);
 		return;
 	}
 
-	// 攻撃モーション中にクリックされたら先行入力フラグを立てる（最大3段目まで）
-	if (ins.IsTrgMouseLeft() && attackStep_ < 4)
+	// 攻撃モーション中にクリックされたら先行入力フラグを立てる
+	if (ins.IsTrgMouseLeft() && attackStep_ < style_.comboMax)
 	{
 		hasComboInput_ = true;
 	}
@@ -363,14 +649,26 @@ void Player::UpdateAttack(void)
 		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
 
 		// 先行入力があり、かつ3段目未満であれば次のコンボへ
-		if (hasComboInput_ && attackStep_ < 4)
+		if (hasComboInput_ && attackStep_ < style_.comboMax)
 		{
 			attackStep_++;
 			ChangeState(STATE::ATTACK); // 次の攻撃アニメーションを再生
 		}
 		else
 		{
-			// 先行入力がない、または3段目が終わったらコンボリセットして待機状態へ
+			// 先行入力がなくても、最終段でなければ猶予時間の間はコンボを保持する
+			// （猶予中に攻撃すると続きの段から始まり、切れると UpdateComboTimer でリセットされる）
+			if (attackStep_ >= 1 && attackStep_ < style_.comboMax)
+			{
+				lastAttackStep_ = attackStep_;
+				comboTimer_ = style_.comboGraceTime;
+			}
+			else
+			{
+				// ダッシュ攻撃や最終段まで出し切った場合は、猶予なしでリセット
+				ResetCombo();
+			}
+
 			attackStep_ = 0;
 			hasComboInput_ = false;
 			ChangeState(STATE::IDLE);
@@ -382,9 +680,22 @@ void Player::UpdateParry(void)
 {
 	bool isDash = false;
 	VECTOR dir = GetInputDirection(isDash);
+
+	if (isParry_)
+	{
+		ChangeState(STATE::PARRYED);
+	}
+
 	// 移動
 	if (isDash)
 	{
+		// 敵の攻撃前状態による警告を受けている場合は、ダッシュではなく回避を発動！
+		if (isWarning_)
+		{
+			ChangeState(STATE::AVOID);
+			return;
+		}
+
 		ChangeState(STATE::RUN);
 		return;
 	}
@@ -396,30 +707,116 @@ void Player::UpdateParry(void)
 	}
 }
 
-//// 右手の武器の種類によって攻撃アニメーションや判定を変える
-	//WEAPON_TYPE rightWeapon = weaponManager_->GetWeaponType(WEAPON_SLOT::RIGHT_HAND);
+void Player::UpdateParryed(void)
+{
+	// パリィ後の後退処理
+	if (parryedBackSpeed_ > 0.0f)
+	{
+		// プレイヤーが向いている正面の「逆方向（背面）」を計算
+		VECTOR forward = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
+		VECTOR backMove = VScale(forward, -parryedBackSpeed_);
 
-	//switch (rightWeapon)
-	//{
-	//case WEAPON_TYPE::SWORD:
-	//	// 片手剣攻撃の処理・アニメーション再生
-	//	break;
+		// 座標に加算
+		transform_.pos = VAdd(transform_.pos, backMove);
 
-	//case WEAPON_TYPE::GREAT_SWORD:
-	//	// 大剣攻撃の処理
-	//	break;
+		// 勢いを少しずつ減衰させる（摩擦）
+		parryedBackSpeed_ *= 0.8f;
 
-	//case WEAPON_TYPE::GUN:
-	//	// 射撃処理
-	//	break;
+		if (parryedBackSpeed_ < 0.1f)
+		{
+			parryedBackSpeed_ = 0.0f;
+		}
+	}
 
-	//default:
-	//	// 素手攻撃
-	//	break;
-	//}
+	auto& ins = InputManager::GetInstance();
+
+	// 攻撃モーション中にクリックされたら先行入力フラグを立てる（最大3段目まで）
+	if (ins.IsTrgMouseLeft())
+	{
+		hasComboInput_ = true;
+	}
+
+	if (animController_->IsEnd())
+	{
+		ChangeState(STATE::IDLE);
+	}
+
+	if (hasComboInput_)
+	{
+		hasComboInput_ = false;
+		ChangeState(STATE::PARRYATTACK); // 次の攻撃アニメーションを再生
+	}
+}
+
+void Player::UpdateParryAttack(void)
+{
+	// 攻撃中は武器の当たり判定を有効化
+	weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, true);
+
+	VECTOR forward = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
+	VECTOR attackMove = VScale(forward, style_.parryAttackMove);
+	transform_.pos = VAdd(transform_.pos, attackMove);
+
+	// パリィアニメーションが終わるまで他の行動を遮断
+	if (animController_->IsEnd())
+	{
+		// 攻撃終了時は判定をオフにする
+		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
+
+		ChangeState(STATE::IDLE);
+	}
+}
+
+void Player::UpdateDamage(void)
+{
+	if (animController_->IsEnd())
+	{
+		ChangeState(STATE::IDLE);
+	}
+}
+
+void Player::UpdateDie(void)
+{
+	if (animController_->IsEnd())
+	{
+		ChangeState(STATE::END);
+	}
+}
+
+void Player::UpdateEnd(void)
+{
+	isDead_ = true;
+}
+
+void Player::DelayRotate(void)
+{
+	// 攻撃中、またはパリィ攻撃中などは、LookAtで向いた方向を維持するため自動回転をさせない
+	if (currentState_ == STATE::ATTACK ||
+		currentState_ == STATE::PARRYATTACK ||
+		currentState_ == STATE::DAMAGE)
+	{
+		return;
+	}
+
+	CharactorBase::DelayRotate();
+}
 
 void Player::UpdateProcessPost(void)
 {
+	if (isDead_) return;
+
+	weaponManager_->Update();
+}
+
+int Player::GetAttackDamage(void) const
+{
+	if (!weaponManager_)
+	{
+		return 10;
+	}
+
+	const auto& sword = weaponManager_->GetWeapon(WEAPON_SLOT::RIGHT_HAND);
+	return sword ? sword->GetDamage() : 10;
 }
 
 void Player::DrawDegug(void)
@@ -434,32 +831,43 @@ void Player::DrawDegug(void)
 
 void Player::InitTransform(void)
 {
-	transform_.scl = PLAYER_DEFAULT_SCALE;
+	transform_.scl = { param_.scale, param_.scale, param_.scale };
 	transform_.quaRot = Quaternion::Identity();
 	transform_.quaRotLocal = Quaternion::Identity();
 	transform_.quaRotLocal = Quaternion::Euler(PLAYER_DEFAULT_ROT_LOCAL);
-	transform_.pos = DEFAULT_POS;
-	transform_.localPos = DEFAULT_LOCAL_POS;
+	transform_.pos = param_.startPos;
+	transform_.localPos = param_.localPos;
 	transform_.Update();
 
 	weaponManager_->Init(transform_.modelId);
 
-	// 剣インスタンスを作成して装備
-	auto sword = std::make_shared<WeaponSword>();
-	weaponManager_->EquipWeapon(
-		WEAPON_SLOT::RIGHT_HAND,
-		sword,
-		swordHandle_, 43, SWORD_SCL,
-		SWORD_LOCALPOS, SWORD_LOCALROT
-	);
+	// メイン武器・サブ武器を装備（装着位置などは weapon_param.csv）
+	EquipFromTable(mainWeaponType_, mainHandle_);
+	EquipFromTable(subWeaponType_, subHandle_);
+}
 
-	/*auto shield = std::make_shared<WeaponShield>();
+void Player::EquipFromTable(WEAPON_TYPE type, int modelHandle)
+{
+	if (type == WEAPON_TYPE::NONE || modelHandle == -1)
+	{
+		return;
+	}
+
+	auto weapon = CreateWeapon(type);
+	if (!weapon)
+	{
+		return;
+	}
+
+	const WeaponParam wp = PlayerDataTable::GetWeaponParam(WeaponTypeToName(type));
+
 	weaponManager_->EquipWeapon(
-		WEAPON_SLOT::LEFT_HAND,
-		shield,
-		shieldHandle_, 12, SHIELD_SCL,
-		SHIELD_LOCALPOS, SHIELD_LOCALROT
-	);*/	
+		SlotFromName(wp.slot),
+		weapon,
+		modelHandle, wp.attachFrame,
+		VGet(wp.scale, wp.scale, wp.scale),
+		wp.localPos, wp.localRot
+	);
 }
 
 void Player::InitCollider(void)
@@ -467,14 +875,14 @@ void Player::InitCollider(void)
 	// 主に地面との衝突で使用する線分コライダ
 	ColliderLine* colLine = new ColliderLine(
 		ColliderBase::TAG::PLAYER, &transform_,
-		COL_LINE_START_LOCAL_POS, COL_LINE_END_LOCAL_POS);
+		VGet(0.0f, param_.lineTopY, 0.0f), AsoUtility::VECTOR_ZERO);
 	ownColliders_.emplace(static_cast<int>(COLLIDER_TYPE::LINE), colLine);
 
 	// 主に壁や木などの衝突で仕様するカプセルコライダ
 	ColliderCapsule* colCapsule = new ColliderCapsule(
 		ColliderBase::TAG::PLAYER, &transform_,
-		COL_CAPSULE_TOP_LOCAL_POS, COL_CAPSULE_DOWN_LOCAL_POS,
-		COL_CAPSULE_RADIUS);
+		VGet(0.0f, param_.capsuleTopY, 0.0f), VGet(0.0f, param_.capsuleDownY, 0.0f),
+		param_.capsuleRadius);
 	ownColliders_.emplace(static_cast<int>(COLLIDER_TYPE::CAPSULE), colCapsule);
 }
 
@@ -482,46 +890,50 @@ void Player::InitAnimation(void)
 {
 	animController_ = std::make_shared<AnimationController>(transform_.modelId);
 
-	animController_->Add(static_cast<int>(ANIM_TYPE::IDLE), 30.0f,
-		Application::PATH_MODEL + "Charactor/Player/idle.mv1");
+	// CSV上の名前と ANIM_TYPE の対応表（新しいアニメを増やす時はここに追記）
+	static const std::map<std::string, ANIM_TYPE> NAME_TO_ANIM = {
+		{ "IDLE",         ANIM_TYPE::IDLE },
+		{ "WALK",         ANIM_TYPE::WALK },
+		{ "RUN",          ANIM_TYPE::RUN },
+		{ "WEAPON_RUN",   ANIM_TYPE::WEAPON_RUN },
+		{ "FAST_RUN",     ANIM_TYPE::FAST_RUN },
+		{ "JUMP",         ANIM_TYPE::JUMP },
+		{ "ATTACK_1",     ANIM_TYPE::ATTACK_1 },
+		{ "ATTACK_2",     ANIM_TYPE::ATTACK_2 },
+		{ "ATTACK_3",     ANIM_TYPE::ATTACK_3 },
+		{ "ATTACK_4",     ANIM_TYPE::ATTACK_4 },
+		{ "DASH_ATTACK",  ANIM_TYPE::DASHATTACK },
+		{ "AVOID",        ANIM_TYPE::AVOID },
+		{ "PARRY",        ANIM_TYPE::PARRY },
+		{ "PARRYED",      ANIM_TYPE::PARRYED },
+		{ "PARRY_ATTACK", ANIM_TYPE::PARRYATTACK },
+		{ "SHEATHING",    ANIM_TYPE::SHEATHING },
+		{ "UNSHEATHED",   ANIM_TYPE::UNSHEATHED },
+		{ "DAMAGE",       ANIM_TYPE::DAMAGE },
+		{ "DIE",          ANIM_TYPE::DIE },
+	};
 
-	animController_->Add(static_cast<int>(ANIM_TYPE::RUN), 30.0f,
-		Application::PATH_MODEL + "Charactor/Player/run.mv1");
+	// 共通アニメ + メイン武器専用アニメ（同名は武器専用が優先）
+	for (const auto& anim : PlayerDataTable::GetAnims(param_.mainWeapon))
+	{
+		auto it = NAME_TO_ANIM.find(anim.name);
+		if (it == NAME_TO_ANIM.end())
+		{
+			// CSVに書いたが対応表に無い名前は無視
+			continue;
+		}
 
-	animController_->Add(static_cast<int>(ANIM_TYPE::FAST_RUN), 30.0f,
-		Application::PATH_MODEL + "Charactor/Player/Run To Stop.mv1");
-
-	animController_->Add(static_cast<int>(ANIM_TYPE::WALK), 30.0f,
-		Application::PATH_MODEL + "Charactor/Player/walk.mv1");
-
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_PARRY), 45.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/parry.mv1");
-
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_RUN), 30.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/shortSwordRun.mv1");
-
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_UNSHEATHED), 30.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/unsheathedSword.mv1");
-
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_SHEATHING), 30.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/sheathingSword.mv1");
-
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_ATTACK_1), 45.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/swordSlash_1.mv1");
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_ATTACK_2), 45.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/swordSlash_2.mv1");
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_ATTACK_3), 45.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/swordSlash_3.mv1");
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_ATTACK_4), 45.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/swordSlash_4.mv1");
-	animController_->Add(static_cast<int>(ANIM_TYPE::SS_DASHATTACK), 45.0f,
-		Application::PATH_MODEL + "Charactor/Player/ShortSword/swordDashAttack2.mv1");
+		animController_->Add(static_cast<int>(it->second), anim.speed,
+			Application::PATH_MODEL + anim.path);
+	}
 
 	animController_->Play(static_cast<int>(ANIM_TYPE::IDLE));
 }
 
 void Player::InitPost(void)
 {
+	hp_ = hpMax_ = param_.hp;;
+	isDead_ = false;
 	isParry_ = false;
 	ChangeState(STATE::IDLE);
 }

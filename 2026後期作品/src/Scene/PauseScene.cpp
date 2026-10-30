@@ -121,6 +121,8 @@ void PauseScene::Draw(void)
 
 	// 「PAUSE」などの文字やUIを描画
 	DrawString(600, 60, "ポーズ中", GetColor(255, 255, 255));
+
+	DrawString(600, 560, "Enterキーでタイトルへ", GetColor(255, 255, 255));
 	//DrawString(520, 380, "ESCAPEでゲームに戻る", GetColor(255, 255, 255));
 	// ボタンの描画
 	DrawRotaGraph(Application::SCREEN_SIZE_X / 2, 200, 0.75f, 0.0f, button_, true);

@@ -1,0 +1,3 @@
+TYEP,HP,SCALE,WALKSPEED,RUNSPEED,SEARCHRADIUS,searchViewAngle,attackRadius,attackColRadius,attackStartFrame,attackEndFrame,knockbackPower,knockbackTime,lineTopY,capsuleTopY,capsuleDownY,capsuleRadius
+ALTER,50,1.2,3,7.5,1000,45,100,15,42,36,10,0.2,120,180,40,35
+OGRE,200,120,3,8,1000,45,250,15,42,36,20,0.2,120,260,105,100

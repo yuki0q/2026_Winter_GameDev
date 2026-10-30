@@ -1,0 +1,15 @@
+TYPE,NAME,SPEED,PATH
+ALTER,IDLE,30,Charactor/Enemy/Alter/alterIdle.mv1
+ALTER,DISCOVERY,20,Charactor/Enemy/Alter/discover.mv1
+ALTER,RUN,40,Charactor/Enemy/Alter/mutant Run.mv1
+ALTER,PREV_ATTACK,45,Charactor/Enemy/Alter/prevAttack_01.mv1
+ALTER,ATTACK_1,45,Charactor/Enemy/Alter/attack_01.mv1
+ALTER,DAMAGE_SMALL,60,Charactor/Enemy/Alter/damageHit.mv1
+ALTER,DIE,30,Charactor/Enemy/Alter/alterDie.mv1
+OGRE,IDLE,30,Charactor/Enemy/Ogre/idle.mv1
+OGRE,DISCOVERY,20,Charactor/Enemy/Ogre/idle.mv1
+OGRE,RUN,40,Charactor/Enemy/Ogre/run.mv1
+OGRE,PREV_ATTACK,30,Charactor/Enemy/Ogre/prevAttack_01.mv1
+OGRE,ATTACK_1,45,Charactor/Enemy/Ogre/attack_01.mv1
+OGRE,DAMAGE_SMALL,60,Charactor/Enemy/Ogre/damage.mv1
+OGRE,DIE,30,Charactor/Enemy/Ogre/die.mv1

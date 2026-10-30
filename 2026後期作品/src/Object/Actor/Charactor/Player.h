@@ -1,5 +1,7 @@
 #pragma once
 #include "CharactorBase.h"
+#include "PlayerDataTable.h"
+#include "../Weapon/WeaponBase.h"
 #include <vector>
 
 class Player : public CharactorBase
@@ -13,18 +15,22 @@ public:
 		IDLE,
 		WALK,
 		RUN,
-		SS_RUN,			// 片手剣ダッシュ
+		WEAPON_RUN,			// 片手剣ダッシュ
 		FAST_RUN,
 		JUMP,
-		SS_ATTACK_1,	// 片手剣攻撃１
-		SS_ATTACK_2,	// 片手剣攻撃２
-		SS_ATTACK_3,	// 片手剣攻撃３
-		SS_ATTACK_4,	// 片手剣攻撃４
-		SS_DASHATTACK,	// 片手剣ダッシュ攻撃
-		AVOID,
-		SS_PARRY,		// 片手剣パリィ
-		SS_SHEATHING,	// 片手剣抜刀
-		SS_UNSHEATHED	// 片手剣納刀
+		ATTACK_1,	// 片手剣攻撃１
+		ATTACK_2,	// 片手剣攻撃２
+		ATTACK_3,	// 片手剣攻撃３
+		ATTACK_4,	// 片手剣攻撃４
+		DASHATTACK,	// 片手剣ダッシュ攻撃
+		AVOID,			// 回避
+		PARRY,		// 片手剣パリィ
+		PARRYED,		// 片手剣パリィ後
+		PARRYATTACK,	// 片手剣パリィ攻撃
+		SHEATHING,	// 片手剣抜刀
+		UNSHEATHED,	// 片手剣納刀
+		DAMAGE,
+		DIE
 		//MAX,
 	};
 
@@ -34,36 +40,46 @@ public:
 		IDLE,
 		WALK,
 		RUN,
+		AVOID,
 		ATTACK,
 		PARRY,
+		PARRYED,
+		PARRYATTACK,
 		JUMP,
+		DAMAGE,
+		DIE,
+		END,
 	};
 
 	Player(void);
 	virtual ~Player(void);
 
-	void Update(void);
 	void Draw(void);
 	void Release(void);
 
+	void OnDamage(int damage, VECTOR attackedPos);
+	void InDamage(int damage);
+	void AddHP(int addDamage);
+
+	void SetPosition(const VECTOR& pos);
+
+	// 現在パリィ中（パリィステート）かどうかを返す
+	bool IsParry(void) const { return currentState_ == STATE::PARRY; }
+
+	void ClearParry(void);
+
+	// 指定した座標のほうを向く関数
+	void LookAt(const VECTOR& targetPos);
+
+	// 敵の攻撃予備動作に対する警告を受けているか設定・取得
+	void SetWarning(bool isWarning) { isWarning_ = isWarning; }
+	bool IsWarning(void) const { return isWarning_; }
+
+	int GetAttackDamage(void) const;
 
 private:
 
-	// 衝突判定用線分開始
-	static constexpr VECTOR COL_LINE_START_LOCAL_POS = { 0.0f, 120.0f, 0.0f };
-	// 衝突判定用線分終了
-	static constexpr VECTOR COL_LINE_END_LOCAL_POS = { 0.0f, 0.0f, 0.0f };
-	// 衝突判定用カプセル上部球体
-	static constexpr VECTOR COL_CAPSULE_TOP_LOCAL_POS = { 0.0f, 145.0f, 0.0f };
-	// 衝突判定用カプセル下部球体
-	static constexpr VECTOR COL_CAPSULE_DOWN_LOCAL_POS = { 0.0f, 40.0f, 0.0f };
-	// 衝突判定用カプセル球体半径
-	static constexpr float COL_CAPSULE_RADIUS = 35.0f;
-
-	static constexpr VECTOR PLAYER_DEFAULT_SCALE = { 1.0f,1.0f,1.0f };
 	static constexpr VECTOR PLAYER_DEFAULT_ROT_LOCAL = { 0.0f,180.0f * DX_PI_F / 180.0f,0.0f };
-	static constexpr VECTOR DEFAULT_POS = { 0.0f,300.0f,0.0f };
-	static constexpr VECTOR DEFAULT_LOCAL_POS = { 100.0f,0.0f,100.0f };
 
 protected:
 
@@ -78,6 +94,9 @@ protected:
 	// 初期化後の個別処理
 	void InitPost(void) override;
 
+	// 武器を生成して、weapon_param.csv の値でスロットに装備する
+	void EquipFromTable(WEAPON_TYPE type, int modelHandle);
+
 	// 更新系
 	void UpdateProcess(void) override;
 	void UpdateProcessPost(void) override;
@@ -86,8 +105,16 @@ protected:
 	void UpdateIdle(void);
 	void UpdateWalk(void);
 	void UpdateRun(void);
+	void UpdateAvoid(void);
 	void UpdateAttack(void);
 	void UpdateParry(void);
+	void UpdateParryed(void);
+	void UpdateParryAttack(void);
+	void UpdateDamage(void);
+	void UpdateDie(void);
+	void UpdateEnd(void);
+
+	void DelayRotate(void) override;
 
 	// 移動入力と移動処理を行う共通関数
 	VECTOR GetInputDirection(bool& outIsDash);
@@ -99,22 +126,47 @@ protected:
 	// ダッシュ入力のリセット用
 	bool isDashEnable_;
 
+	// パリィ後の後退用スピード
+	float parryedBackSpeed_;
+
 	void DrawDegug(void);
 
 	// 現在のステート
 	STATE currentState_; 
 
 	// コンボ用変数
-	// 現在の攻撃段階（1?3）
+	// 現在の攻撃段階
 	int attackStep_; 
 	// 攻撃中の先行入力フラグ
 	bool hasComboInput_;
 
-	int swordHandle_;
+	// コンボ猶予（攻撃が途切れても、一定時間は続きの段から再開できる）
+	// 猶予の残り時間（秒）。0 なら猶予なし
+	float comboTimer_;
+	// 猶予中に再開する時の基準になる、最後に出し切った攻撃段
+	int lastAttackStep_;
 
-	int shieldHandle_;
+	// 猶予時間を減らす（毎フレーム）
+	void UpdateComboTimer(void);
+	// 通常攻撃を始める時の段（猶予中なら続きの段、そうでなければ1段目）
+	int GetStartAttackStep(void) const;
+	// コンボと猶予を完全にリセットする
+	void ResetCombo(void);
+
+	// CSV(player_param.csv)から読み込んだ共通パラメータ
+	PlayerParam param_;
+
+	// メイン武器の種類に対応する動きのパラメータ(player_style.csv)
+	PlayerStyle style_;
+
+	// 右手(メイン)・左手(サブ)の武器種別とモデルハンドル
+	WEAPON_TYPE mainWeaponType_;
+	WEAPON_TYPE subWeaponType_;
+	int mainHandle_;
+	int subHandle_;
 	
-	bool isParry_;
-	bool isAttack1_;
+	bool isParry_; 
+	// 警告フラグ
+	bool isWarning_;
 };
 
