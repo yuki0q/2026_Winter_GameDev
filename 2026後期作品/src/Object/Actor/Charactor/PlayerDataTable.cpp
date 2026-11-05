@@ -24,11 +24,13 @@ void PlayerDataTable::Load(void)
 	styles_.clear();
 	weapons_.clear();
 	anims_.clear();
+	attackRates_.clear();
 
 	LoadParam();
 	LoadStyle();
 	LoadWeapon();
 	LoadAnim();
+	LoadAttack();
 
 	isLoaded_ = true;
 }
@@ -65,6 +67,28 @@ WeaponParam PlayerDataTable::GetWeaponParam(const std::string& weapon)
 	}
 
 	return it->second;
+}
+
+float PlayerDataTable::GetAttackRate(const std::string& weapon, const std::string& motion)
+{
+
+	EnsureLoaded();
+
+	// 行が無いモーションは等倍（警告は出さない）
+	auto weaponIt = attackRates_.find(weapon);
+	if (weaponIt == attackRates_.end())
+	{
+		return 1.0f;
+	}
+
+	auto motionIt = weaponIt->second.find(motion);
+	if (motionIt == weaponIt->second.end())
+	{
+		return 1.0f;
+	}
+
+	return motionIt->second;
+
 }
 
 std::vector<PlayerAnimData> PlayerDataTable::GetAnims(const std::string& weapon)
@@ -262,4 +286,26 @@ void PlayerDataTable::LoadAnim(void)
 
 		anims_[r[0]].push_back(a);
 	}
+}
+
+void PlayerDataTable::LoadAttack(void)
+{
+
+	// weapon,motion,rate
+	auto rows = CsvLoader::Load(PATH_CSV + "PlayerAttack.csv");
+	if (rows.empty())
+	{
+		LogWarning("[PlayerDataTable] PlayerAttack.csv を読み込めませんでした。ダメージ倍率は全て等倍になります");
+	}
+
+	for (const auto& r : rows)
+	{
+		if (r.size() < 3)
+		{
+			continue;
+		}
+
+		attackRates_[r[0]][r[1]] = CsvLoader::ToFloat(r[2], 1.0f);
+	}
+
 }

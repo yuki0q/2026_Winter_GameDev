@@ -15,9 +15,6 @@ namespace
     // ドロップしたアイテムを出す高さ（敵の足元から）
     const float DROP_OFFSET_Y = 60.0f;
 
-    // 拾う操作のキー
-    const int PICKUP_KEY = KEY_INPUT_F;
-
     // プロンプトをアイテムの何ユニット上に出すか
     const float PROMPT_OFFSET_Y = 100.0f;
 
@@ -198,7 +195,8 @@ void ItemManager::CheckCollection(std::shared_ptr<Player> player)
 
     // Fキーが押された時だけ拾う
     auto const& ins = InputManager::GetInstance();
-    if (!ins.IsTrgDown(PICKUP_KEY)) return;
+    bool IsPickUp = ins.IsActionTrgDown(InputManager::ACTION::PICK_UP);
+    if (!IsPickUp) return;
 
     if (isStorable)
     {
@@ -269,10 +267,14 @@ void ItemManager::DrawPickupPrompt(void) const
 
 void ItemManager::UpdateBag(std::shared_ptr<Player> player)
 {
-    auto const& ins = InputManager::GetInstance();
+    auto& ins = InputManager::GetInstance();
+    bool IsPickUp = ins.IsActionTrgDown(InputManager::ACTION::PICK_UP);
+    bool IsBag = ins.IsActionTrgDown(InputManager::ACTION::OPEN_BAG);
+    bool IsPause = ins.IsActionTrgDown(InputManager::ACTION::PAUSE);
+    bool IsScene = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
 
     // 開閉
-    if (ins.IsTrgDown(BAG_KEY))
+    if (IsBag)
     {
         isBagOpen_ = !isBagOpen_;
 
@@ -288,7 +290,7 @@ void ItemManager::UpdateBag(std::shared_ptr<Player> player)
     if (!isBagOpen_) return;
 
     // ESC でも閉じる（GameScene 側では、バッグ操作中のフレームはポーズ判定をしない）
-    if (ins.IsTrgDown(KEY_INPUT_ESCAPE))
+    if (IsPause)
     {
         isBagOpen_ = false;
         return;
@@ -296,19 +298,32 @@ void ItemManager::UpdateBag(std::shared_ptr<Player> player)
 
     const int slotNum = bag_.GetSlotNum();
     if (slotNum <= 0) return;
+    // 接続されているゲームパッド１の情報を取得
+    InputManager::JOYPAD_IN_STATE padState =
+        ins.GetJPadInputState(InputManager::JOYPAD_NO::PAD1);
+
+    VECTOR inputDir = ins.GetDirectionXZAKey(padState.AKeyLX, padState.AKeyLY);
+
+    // スティックが上/下に一定以上倒されているかの判定フラグ
+    // (inputDir.z > 0.5f が「上」、inputDir.z < -0.5f が「下」になります)
+    bool isStickUpNow = (inputDir.z > 0.5f);
+    bool isStickDownNow = (inputDir.z < -0.5f);
 
     // カーソル移動（上下でループ）
-    if (ins.IsTrgDown(KEY_INPUT_UP) || ins.IsTrgDown(KEY_INPUT_W))
+    if ((isStickUpNow && !isStickUpOld) || ins.IsTrgDown(KEY_INPUT_W))
     {
         bagCursor_ = (bagCursor_ - 1 + slotNum) % slotNum;
     }
-    if (ins.IsTrgDown(KEY_INPUT_DOWN) || ins.IsTrgDown(KEY_INPUT_S))
+    if ((isStickDownNow && !isStickDownOld) || ins.IsTrgDown(KEY_INPUT_S))
     {
         bagCursor_ = (bagCursor_ + 1) % slotNum;
     }
 
+    isStickUpOld = isStickUpNow;
+    isStickDownOld = isStickDownNow;
+
     // 使う
-    if (ins.IsTrgDown(PICKUP_KEY) || ins.IsTrgDown(KEY_INPUT_RETURN) || ins.IsTrgDown(KEY_INPUT_SPACE))
+    if (IsPickUp || ins.IsTrgDown(KEY_INPUT_RETURN) || IsScene)
     {
         UseBagItem(player, bagCursor_);
     }
@@ -419,7 +434,7 @@ void ItemManager::DrawBag(void) const
     // 操作説明
     SetFontSize(BAG_HINT_FONT_SIZE);
     DrawString(px + BAG_ROW_MARGIN, py + BAG_PANEL_H - 34,
-        "W/S:選択   E/Space:使う   B/ESC:閉じる", GetColor(160, 160, 180));
+        "W/S:選択   F/Space:使う   B/ESC:閉じる", GetColor(160, 160, 180));
 
     SetFontSize(prevFontSize);
 }

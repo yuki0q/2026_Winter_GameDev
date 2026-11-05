@@ -26,17 +26,17 @@ void GameOverScene::Update(void)
 {
 	// シーン遷移
 	auto& ins = InputManager::GetInstance();
-
+	bool IsPause = ins.IsActionTrgDown(InputManager::ACTION::PAUSE);
+	bool IsScene = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
 	// 接続されているゲームパッド１の情報を取得
 	InputManager::JOYPAD_IN_STATE padState =
 		ins.GetJPadInputState(InputManager::JOYPAD_NO::PAD1);
 
-	if ((ins.IsTrgDown(KEY_INPUT_ESCAPE)))
+	if (IsPause)
 	{
 		Application::GetInstance().Shutdown();
 	}
-	if ((ins.IsTrgDown(KEY_INPUT_SPACE) ||
-		ins.IsPadBtnTrgDown(InputManager::JOYPAD_NO::PAD1, InputManager::JOYPAD_BTN::DOWN)))
+	if (IsScene)
 	{
 
 		// ゲームシーンへ遷移

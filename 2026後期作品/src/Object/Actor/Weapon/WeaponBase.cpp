@@ -81,20 +81,6 @@ void WeaponBase::Update(void)
     transform_.pos = VGet(finalMat.m[3][0], finalMat.m[3][1], finalMat.m[3][2]);
     transform_.quaRot = Quaternion::GetRotation(finalMat);
     transform_.scl = scale_;
-
-    //auto& ins = InputManager::GetInstance();
-       //// ゲームパッドが接続されている数で処理を分ける
-       //if (GetJoypadNum() == 0)
-       //{
-       //    // WASDで移動する
-       //    if (ins.IsNew(KEY_INPUT_Q)) { transform_.pos.y += 0.01f; }
-       //    if (ins.IsNew(KEY_INPUT_E)) { transform_.pos.y -= 0.01f; }
-       //    if (ins.IsNew(KEY_INPUT_R)) { transform_.pos.z -= 0.01f; }
-       //    if (ins.IsNew(KEY_INPUT_Z)) { transform_.pos.z += 0.01f; }
-       //    if (ins.IsNew(KEY_INPUT_X)) { transform_.pos.x -= 0.01f; }
-       //    if (ins.IsNew(KEY_INPUT_C)) { transform_.pos.x += 0.01f; }
-
-       //}
 }
 
 void WeaponBase::Draw(void)

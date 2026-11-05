@@ -54,13 +54,10 @@ private:
 	static constexpr VECTOR PLAYER_DEFAULT_SCALE = { 1.2f,1.2f,1.2f };
 
 	AnimationController* animController_;
-	SkyDome* skyDome_;
-
-	// スカイドーム用の空Transform
-	Transform empty_;
 
 	int imgTitle_;
 	int imgPushSpace_;
+	int imgTitleLogo_;
 
 	// デフォルトの選択位置
 	static constexpr int DEFAULT_SELECT = 480;
@@ -79,5 +76,4 @@ private:
 	bool introWindow_;
 	bool window_;
 
-	// 描画用
 };

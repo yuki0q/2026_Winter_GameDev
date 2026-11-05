@@ -136,7 +136,7 @@ void GameScene::Update(void)
 {
 	stage_->Update();
 
-	// バッグ操作（Bキーで開閉）。開いている間はゲーム内の更新を止める
+	// バッグ操作。開いている間はゲーム内の更新を止める
 	if (itemManager_)
 	{
 		const bool wasBagOpen = itemManager_->IsBagOpen();
@@ -219,9 +219,10 @@ void GameScene::Update(void)
 	}
 
 	// シーン遷移
-	auto const& ins = InputManager::GetInstance();
-	if (!ins.IsTrgDown(KEY_INPUT_ESCAPE) && 
-		!ins.IsPadBtnTrgDown(InputManager::JOYPAD_NO::PAD1, InputManager::JOYPAD_BTN::START))
+	auto& ins = InputManager::GetInstance();
+
+	bool IsPause = ins.IsActionTrgDown(InputManager::ACTION::PAUSE);
+	if (!IsPause)
 	{
 		return;
 	}
@@ -378,7 +379,8 @@ void GameScene::CollisionWeaponToEnemy(void)
 
 			// 「前フレームのリストに入っていなかった」場合のみダメージを与える
 			if (prevHit_.find(enemyPtr) != prevHit_.end()) continue;
-			enemy->OnDamage(player_->GetAttackDamage(), player_->GetTransform().pos);
+			enemy->OnDamage(player_->CalcAttackDamage(rightWeapon->GetDamage())
+				, player_->GetTransform().pos);
 		
 	}
 	// 次のフレームのために、今フレームの接触状態を「前フレームの履歴」として保存する

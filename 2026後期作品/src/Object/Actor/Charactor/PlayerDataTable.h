@@ -48,7 +48,6 @@ struct WeaponParam
 	int   damage = 10;
 };
 
-
 // アニメーション1件分（PlayerAnim.csv）
 struct PlayerAnimData
 {
@@ -73,6 +72,10 @@ public:
 	// 武器1本ごとのパラメータ
 	static WeaponParam GetWeaponParam(const std::string& weapon);
 
+	// 攻撃モーションごとのダメージ倍率（player_attack.csv）
+	// motion は「ATTACK_1」「DASH_ATTACK」「PARRY_ATTACK」など。無ければ 1.0
+	static float GetAttackRate(const std::string& weapon, const std::string& motion);
+
 	// 武器種別ごとのアニメーション一覧
 	// COMMON（共通）に武器専用の行を重ね、同じ名前は武器専用が優先される
 	static std::vector<PlayerAnimData> GetAnims(const std::string& weapon);
@@ -84,11 +87,13 @@ private:
 	static void LoadStyle(void);
 	static void LoadWeapon(void);
 	static void LoadAnim(void);
+	static void LoadAttack(void);
 
 	static inline bool isLoaded_ = false;
 	static inline PlayerParam param_;
 	static inline std::map<std::string, PlayerStyle> styles_;
 	static inline std::map<std::string, WeaponParam> weapons_;
 	static inline std::map<std::string, std::vector<PlayerAnimData>> anims_;
+	static inline std::map<std::string, std::map<std::string, float>> attackRates_;
 };
 

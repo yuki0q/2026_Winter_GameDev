@@ -78,5 +78,9 @@ private:
 
     // ItemGold を取得したか（取得済みアイテムはリストから消えるため別に保持）
     bool isGoldCollected_ = false;
+
+    // スティック
+    bool isStickUpOld;
+    bool isStickDownOld;
 };
 

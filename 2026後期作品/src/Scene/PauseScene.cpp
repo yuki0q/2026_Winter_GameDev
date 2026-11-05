@@ -45,8 +45,10 @@ void PauseScene::Update(void)
 {
 	// ƒV[ƒ“‘JˆÚ
 	auto& ins = InputManager::GetInstance();
-	if (ins.IsTrgDown(KEY_INPUT_ESCAPE)||
-		ins.IsPadBtnTrgDown(InputManager::JOYPAD_NO::PAD1, InputManager::JOYPAD_BTN::START))
+	bool IsPause = ins.IsActionTrgDown(InputManager::ACTION::PAUSE);
+	bool IsScene = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+
+	if (IsPause)
 	{
 		SoundManager::GetInstance()->PlaySE(SoundID::SE_CANCEL);
 		sceMng_.ChangeScene(SceneManager::SCENE_ID::GAME);
@@ -91,8 +93,7 @@ void PauseScene::Update(void)
 
 	count_ = select_ / SELECT_MOVE;
 
-	if (ins.IsTrgDown(KEY_INPUT_SPACE) ||
-		ins.IsPadBtnTrgDown(InputManager::JOYPAD_NO::PAD1, InputManager::JOYPAD_BTN::DOWN))
+	if (IsScene)
 	{
 		switch (count_) {
 		case 1:

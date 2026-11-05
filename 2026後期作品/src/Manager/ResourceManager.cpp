@@ -33,8 +33,10 @@ void ResourceManager::Init(void)
 	Resource* res;
 
 	// タイトル画像
-	res = new RES(RES_T::IMG, PATH_IMG + "newTitle.png");
-	resourcesMap_.emplace(SRC::TITLE_IMG, res);
+	res = new RES(RES_T::IMG, PATH_IMG + "title.png");
+	resourcesMap_.emplace(SRC::IMG_TITLE, res);
+	res = new RES(RES_T::IMG, PATH_IMG + "titleLogo.png");
+	resourcesMap_.emplace(SRC::IMG_TITLE_LOGO, res);
 
 	// プレイヤー
 	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Player/player.mv1");

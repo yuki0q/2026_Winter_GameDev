@@ -15,20 +15,20 @@ public:
 		IDLE,
 		WALK,
 		RUN,
-		WEAPON_RUN,			// 片手剣ダッシュ
+		WEAPON_RUN,	// 武器持ちダッシュ
 		FAST_RUN,
 		JUMP,
-		ATTACK_1,	// 片手剣攻撃１
-		ATTACK_2,	// 片手剣攻撃２
-		ATTACK_3,	// 片手剣攻撃３
-		ATTACK_4,	// 片手剣攻撃４
-		DASHATTACK,	// 片手剣ダッシュ攻撃
-		AVOID,			// 回避
-		PARRY,		// 片手剣パリィ
-		PARRYED,		// 片手剣パリィ後
-		PARRYATTACK,	// 片手剣パリィ攻撃
-		SHEATHING,	// 片手剣抜刀
-		UNSHEATHED,	// 片手剣納刀
+		ATTACK_1,	// 攻撃１
+		ATTACK_2,	// 攻撃２
+		ATTACK_3,	// 攻撃３
+		ATTACK_4,	// 攻撃４
+		DASH_ATTACK,// ダッシュ攻撃
+		AVOID,		// 回避
+		PARRY,		// パリィ
+		PARRYED,	// パリィ後
+		PARRYATTACK,// パリィ攻撃
+		SHEATHING,	// 抜刀
+		UNSHEATHED,	// 納刀
 		DAMAGE,
 		DIE
 		//MAX,
@@ -76,6 +76,10 @@ public:
 	bool IsWarning(void) const { return isWarning_; }
 
 	int GetAttackDamage(void) const;
+	// 現在の攻撃モーション（コンボ段・ダッシュ攻撃・パリィ攻撃）に応じたダメージ倍率（player_attack.csv）
+	float GetAttackDamageRate(void) const;
+	// 武器の基本ダメージに、現在の攻撃モーションの倍率をかけた実際のダメージ量
+	int CalcAttackDamage(int baseDamage) const;
 
 private:
 

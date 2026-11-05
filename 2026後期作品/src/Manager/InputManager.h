@@ -72,6 +72,29 @@ public:
 		int AKeyRY;
 	};
 
+	// ゲーム内で使用する抽象的なアクションの種類
+	enum class ACTION
+	{
+		ATTACK,
+		PARRY,
+		AVOID_DASH,
+		PICK_UP,
+		OPEN_BAG,
+		SKILL,
+		ULTIMET,
+		PAUSE,
+		MAX
+	};
+
+	// キー割り当て構造体
+	struct Binding
+	{
+		int keyBoardKey;    // 例: KEY_INPUT_SPACE (使わない場合は -1)
+		int mouseButton;    // 例: MOUSE_INPUT_LEFT (使わない場合は -1)
+		JOYPAD_BTN padBtn1;  // 例: JOYPAD_BTN::LEFT (使わない場合は JOYPAD_BTN::MAX)
+		JOYPAD_BTN padBtn2; // 同時押し用のサブボタン（使わない場合は MAX）
+	};
+
 	// インスタンスを明示的に生成
 	static void CreateInstance(void);
 
@@ -134,6 +157,16 @@ public:
 	// アナログキーの入力値から方向を取得
 	VECTOR GetDirectionXZAKey(int aKeyX, int aKeyY);
 
+	// アクション単位の入力判定
+	bool IsActionNew(ACTION action) const;
+	bool IsActionTrgDown(ACTION action) const;
+	bool IsActionTrgUp(ACTION action) const;
+
+	// キーコンフィグ変更用（特定の?ngアクションに新しいキー/ボタンを割り当てる）
+	void SetBinding(ACTION action, int kbKey, int mouseBtn, JOYPAD_BTN padBtn1,
+		JOYPAD_BTN padBtn2 = JOYPAD_BTN::MAX);
+	const Binding& GetBinding(ACTION action) const;
+
 private:
 
 	// キー情報
@@ -155,6 +188,14 @@ private:
 		bool keyTrgDown;	// 現フレームでボタンが押されたか
 		bool keyTrgUp;		// 現フレームでボタンが離されたか
 	};
+
+	// アクションごとの割り当てマップ
+	std::map<ACTION, Binding> bindings_;
+
+	//// 内部で物理キー/ボタンが押されているかをチェックするヘルパー
+	//bool IsKeyOrBtnPressed(const Binding& bind, 
+	//	bool (InputManager::* checkFunc)(int) const, 
+	//	bool (InputManager::* checkPadFunc)(JOYPAD_NO, JOYPAD_BTN) const) const;
 
 	// コントローラ情報
 	DINPUT_JOYSTATE joyDInState_;

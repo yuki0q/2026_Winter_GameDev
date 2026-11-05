@@ -13,3 +13,5 @@ OGRE,PREV_ATTACK,30,Charactor/Enemy/Ogre/prevAttack_01.mv1
 OGRE,ATTACK_1,45,Charactor/Enemy/Ogre/attack_01.mv1
 OGRE,DAMAGE_SMALL,60,Charactor/Enemy/Ogre/damage.mv1
 OGRE,DIE,30,Charactor/Enemy/Ogre/die.mv1
+OGRE,ATTACK_2,45,Charactor/Enemy/Ogre/attack_02.mv1
+OGRE,PREV_ATTACK_02,30,Charactor/Enemy/Ogre/prevAttack_02.mv1

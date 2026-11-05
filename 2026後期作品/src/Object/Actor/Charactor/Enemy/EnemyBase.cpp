@@ -368,7 +368,7 @@ void EnemyBase::InitFacing(void)
     // プレイヤーが未設定、または真上・真下などで方向が決まらない場合は +Z 方向
     if (VSize(dir) < 0.001f)
     {
-        dir = AsoUtility::DIR_F;
+        dir = AsoUtility::DIR_B;
     }
     dir = AsoUtility::VNormalize(dir);
 

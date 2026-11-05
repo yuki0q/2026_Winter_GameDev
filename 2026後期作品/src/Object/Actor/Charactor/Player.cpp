@@ -12,6 +12,8 @@
 #include "../Weapon/WeaponSword.h"
 #include "../Weapon/WeaponShield.h"
 #include <map>
+#include <string>
+#include <cmath>
 
 namespace
 {
@@ -254,6 +256,47 @@ void Player::UpdateProcess(void)
 	}
 }
 
+float Player::GetAttackDamageRate(void) const
+{
+	// 現在のモーション名（player_anim.csv の name と同じ名前で player_attack.csv を引く）
+	std::string motion;
+
+	switch (currentState_)
+	{
+	case STATE::ATTACK:
+		if (attackStep_ == 0)
+		{
+			// ダッシュ攻撃
+			motion = "DASH_ATTACK";
+		}
+		else
+		{
+			// コンボ段（ATTACK_1, ATTACK_2, ...）
+			motion = "ATTACK_" + std::to_string(attackStep_);
+		}
+		break;
+
+	case STATE::PARRYATTACK:
+		motion = "PARRY_ATTACK";
+		break;
+
+	default:
+		// 攻撃中以外は等倍
+		return 1.0f;
+	}
+
+	return PlayerDataTable::GetAttackRate(param_.mainWeapon, motion);
+}
+
+int Player::CalcAttackDamage(int baseDamage) const
+{
+	int damage = static_cast<int>(std::lround(
+		static_cast<float>(baseDamage) * GetAttackDamageRate()));
+
+	// 倍率を小さくしすぎても、ヒットした攻撃のダメージが0にならないようにする
+	return damage < 1 ? 1 : damage;
+}
+
 void Player::UpdateComboTimer(void)
 {
 	if (comboTimer_ <= 0.0f)
@@ -318,7 +361,7 @@ void Player::ChangeState(STATE state)
 		// 攻撃ステップに応じたアニメーションの再生
 		if (attackStep_ == 0)
 		{
-			animController_->Play(static_cast<int>(ANIM_TYPE::DASHATTACK), false);
+			animController_->Play(static_cast<int>(ANIM_TYPE::DASH_ATTACK), false);
 		}
 		if (attackStep_ == 1)
 		{
@@ -388,19 +431,6 @@ VECTOR Player::GetInputDirection(bool& IsDash)
 		if (ins.IsNew(KEY_INPUT_S) && ins.IsNew(KEY_INPUT_A)) { dir = AsoUtility::DIR_BL; }
 		if (ins.IsNew(KEY_INPUT_S) && ins.IsNew(KEY_INPUT_D)) { dir = AsoUtility::DIR_BR; }
 
-		// ダッシュ入力のリセット判定
-		if (!ins.IsNew(KEY_INPUT_LSHIFT))
-		{
-			// キーが一度でも離されたらダッシュ入力を再度有効化
-			isDashEnable_ = true;
-		}
-
-		// フラグが true の場合のみダッシュ判定を有効にする
-		if (isDashEnable_ && ins.IsNew(KEY_INPUT_LSHIFT))
-		{
-			IsDash = true;
-		}
-
 		if (ins.IsNew(KEY_INPUT_RETURN)) { transform_.pos = param_.startPos; }
 	}
 	else
@@ -408,15 +438,21 @@ VECTOR Player::GetInputDirection(bool& IsDash)
 		InputManager::JOYPAD_IN_STATE padState = ins.GetJPadInputState(InputManager::JOYPAD_NO::PAD1);
 		dir = ins.GetDirectionXZAKey(padState.AKeyLX, padState.AKeyLY);
 
-		if (!ins.IsPadBtnNew(InputManager::JOYPAD_NO::PAD1, InputManager::JOYPAD_BTN::R_TRIGGER))
-		{
-			isDashEnable_ = true;
-		}
+	}
 
-		if (isDashEnable_ && ins.IsPadBtnNew(InputManager::JOYPAD_NO::PAD1, InputManager::JOYPAD_BTN::R_TRIGGER))
-		{
-			IsDash = true;
-		}
+	bool KeyDash = ins.IsActionNew(InputManager::ACTION::AVOID_DASH);
+
+	// ダッシュ入力のリセット判定
+	if (!KeyDash)
+	{
+		// キーが一度でも離されたらダッシュ入力を再度有効化
+		isDashEnable_ = true;
+	}
+
+	// フラグが true の場合のみダッシュ判定を有効にする
+	if (isDashEnable_ && KeyDash)
+	{
+		IsDash = true;
 	}
 
 	return dir;
@@ -437,8 +473,11 @@ void Player::UpdateIdle(void)
 {
 	auto& ins = InputManager::GetInstance();
 
+	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
+	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+
 	// 攻撃優先（クリック）
-	if (ins.IsTrgMouseLeft())
+	if (IsAttack)
 	{
 		attackStep_ = GetStartAttackStep(); // 通常は1段目、猶予中は続きの段から
 		ChangeState(STATE::ATTACK);
@@ -446,7 +485,7 @@ void Player::UpdateIdle(void)
 	}
 
 	// パリィ優先（Spaceキー）
-	if (ins.IsTrgDown(KEY_INPUT_SPACE))
+	if (IsParry)
 	{
 		ChangeState(STATE::PARRY);
 		return;
@@ -479,14 +518,17 @@ void Player::UpdateWalk(void)
 {
 	auto& ins = InputManager::GetInstance();
 
-	if (ins.IsTrgMouseLeft())
+	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
+	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+
+	if (IsAttack)
 	{
 		attackStep_ = GetStartAttackStep(); // 通常は1段目、猶予中は続きの段から
 		ChangeState(STATE::ATTACK);
 		return;
 	}
 
-	if (ins.IsTrgDown(KEY_INPUT_SPACE))
+	if (IsParry)
 	{
 		ChangeState(STATE::PARRY);
 		return;
@@ -520,14 +562,17 @@ void Player::UpdateRun(void)
 {
 	auto& ins = InputManager::GetInstance();
 
-	if (ins.IsTrgMouseLeft())
+	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
+	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+
+	if (IsAttack)
 	{
 		attackStep_ = 0; // ダッシュ攻撃から開始
 		ChangeState(STATE::ATTACK);
 		return;
 	}
 
-	if (ins.IsTrgDown(KEY_INPUT_SPACE))
+	if (IsParry)
 	{
 		ChangeState(STATE::PARRY);
 		return;
@@ -554,8 +599,11 @@ void Player::UpdateAvoid(void)
 {
 	auto& ins = InputManager::GetInstance();
 
+	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
+	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+
 	// 攻撃優先（クリック）
-	if (ins.IsTrgMouseLeft())
+	if (IsAttack)
 	{
 		attackStep_ = GetStartAttackStep(); // 通常は1段目、猶予中は続きの段から
 		ChangeState(STATE::ATTACK);
@@ -563,7 +611,7 @@ void Player::UpdateAvoid(void)
 	}
 
 	// パリィ優先（Spaceキー）
-	if (ins.IsTrgDown(KEY_INPUT_SPACE))
+	if (IsParry)
 	{
 		ChangeState(STATE::PARRY);
 		return;
@@ -602,6 +650,9 @@ void Player::UpdateAttack(void)
 
 	auto& ins = InputManager::GetInstance();
 
+	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
+	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+
 	bool isDash = false;
 	VECTOR dir = GetInputDirection(isDash);
 
@@ -625,7 +676,7 @@ void Player::UpdateAttack(void)
 	}
 
 	// 攻撃中もパリィが出せるように
-	if (ins.IsTrgDown(KEY_INPUT_SPACE))
+	if (IsParry)
 	{
 		attackStep_ = 0;
 		hasComboInput_ = false;
@@ -636,7 +687,7 @@ void Player::UpdateAttack(void)
 	}
 
 	// 攻撃モーション中にクリックされたら先行入力フラグを立てる
-	if (ins.IsTrgMouseLeft() && attackStep_ < style_.comboMax)
+	if (IsAttack && attackStep_ < style_.comboMax)
 	{
 		hasComboInput_ = true;
 	}
@@ -730,8 +781,10 @@ void Player::UpdateParryed(void)
 
 	auto& ins = InputManager::GetInstance();
 
+	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
+
 	// 攻撃モーション中にクリックされたら先行入力フラグを立てる（最大3段目まで）
-	if (ins.IsTrgMouseLeft())
+	if (IsAttack)
 	{
 		hasComboInput_ = true;
 	}
@@ -902,7 +955,7 @@ void Player::InitAnimation(void)
 		{ "ATTACK_2",     ANIM_TYPE::ATTACK_2 },
 		{ "ATTACK_3",     ANIM_TYPE::ATTACK_3 },
 		{ "ATTACK_4",     ANIM_TYPE::ATTACK_4 },
-		{ "DASH_ATTACK",  ANIM_TYPE::DASHATTACK },
+		{ "DASH_ATTACK",  ANIM_TYPE::DASH_ATTACK },
 		{ "AVOID",        ANIM_TYPE::AVOID },
 		{ "PARRY",        ANIM_TYPE::PARRY },
 		{ "PARRYED",      ANIM_TYPE::PARRYED },

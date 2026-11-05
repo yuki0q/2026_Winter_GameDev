@@ -11,7 +11,6 @@ public:
 	// ÉäÉ\Å[ÉXñº
 	enum class SRC
 	{
-		TITLE_IMG,
 		MDL_PLAYER,
 		MDL_SWORD,
 		MDL_SHIELD,
@@ -21,6 +20,8 @@ public:
 		MDL_OGRE,
 		MDL_POTION,
 		MDL_GOLD,
+		IMG_TITLE,
+		IMG_TITLE_LOGO,
 		MAIN_STAGE,
 	};
 

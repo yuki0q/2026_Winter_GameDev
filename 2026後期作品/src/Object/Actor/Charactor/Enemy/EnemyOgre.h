@@ -11,7 +11,8 @@ class EnemyOgre : public EnemyBase
 		RUN,
 		FAST_RUN,
 		JUMP,
-		PREV_ATTACK,// UŒ‚‘O
+		PREV_ATTACK_01,// UŒ‚‘O
+		PREV_ATTACK_02,// UŒ‚‘O
 		ATTACK_1,	// UŒ‚‚P
 		ATTACK_2,	// UŒ‚‚Q
 		ATTACK_3,	// UŒ‚‚R

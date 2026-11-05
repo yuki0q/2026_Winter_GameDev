@@ -6,8 +6,18 @@
 #include "../Manager/ResourceManager.h"
 #include "../Manager/Resource.h"
 #include "../Manager/SoundManager.h"
-//#include "../Object/Actor/SkyDome.h"
 #include "TitleScene.h"
+
+namespace
+{
+	const VECTOR TITLE_POS = { -30.0f,0.0f,0.0f };
+	const VECTOR TITLE_LOGO_POS = { 0.0f,130.0f,0.0f };
+
+	const float IMG_CX = 0.5f;
+	const float IMG_CY = 0.5f;
+	const float TITLE_SIZE = 1200.0f;
+	const float TITLE_LOGO_SIZE = 450.0f;
+}
 
 TitleScene::TitleScene(void)
 	:
@@ -20,6 +30,7 @@ TitleScene::TitleScene(void)
 	window_(false),
 	isStickUpOld(false),
 	isStickDownOld(false),
+	imgTitleLogo_(),
 	SceneBase()
 {
 }
@@ -31,7 +42,8 @@ TitleScene::~TitleScene(void)
 void TitleScene::Init(void)
 {
 	// 画像読み込み
-	//imgPushSpace_ = resMng_.Load(ResourceManager::SRC::TITLE_PUSH_SPACE).handleId_;
+	imgTitle_ = resMng_.Load(ResourceManager::SRC::IMG_TITLE).handleId_;
+	imgTitleLogo_ = resMng_.Load(ResourceManager::SRC::IMG_TITLE_LOGO).handleId_;
 
 	// 定点カメラ
 	sceMng_.GetCamera()->ChangeMode(Camera::MODE::FIXED_POINT);
@@ -50,6 +62,8 @@ void TitleScene::Update(void)
 {
 	// シーン遷移
 	auto& ins = InputManager::GetInstance();
+	bool IsPause = ins.IsActionTrgDown(InputManager::ACTION::PAUSE);
+	bool IsScene = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
 
 	// 接続されているゲームパッド１の情報を取得
 	InputManager::JOYPAD_IN_STATE padState =
@@ -128,13 +142,14 @@ void TitleScene::Update(void)
 	//		SoundManager::GetInstance()->PlaySE(SoundID::SE_CANCEL);
 	//	}
 
+
+
 		// ウィンドウが開いている状態で決定ボタンが押されたら、ここで初めてシーンを遷移させる
-	if ((ins.IsTrgDown(KEY_INPUT_ESCAPE)))
+	if (IsPause)
 	{
 		Application::GetInstance().Shutdown();
 	}
-	if ((ins.IsTrgDown(KEY_INPUT_SPACE) ||
-			ins.IsPadBtnTrgDown(InputManager::JOYPAD_NO::PAD1, InputManager::JOYPAD_BTN::DOWN)))
+	if (IsScene)
 		{
 
 			// ゲームシーンへ遷移
@@ -148,6 +163,9 @@ void TitleScene::Update(void)
 
 void TitleScene::Draw(void)
 {
+	DrawBillboard3D(TITLE_POS, IMG_CX, IMG_CY, TITLE_SIZE, 0.0f, imgTitle_, false);
+	DrawBillboard3D(TITLE_LOGO_POS, IMG_CX, IMG_CY, TITLE_LOGO_SIZE, 0.0f, imgTitleLogo_, true);
+
 	DrawFormatString(10, 10, 0xffffff, "タイトルシーン");
 
 	DrawFormatString(10, 560, 0xffffff, "ESCキーで終了");
@@ -155,4 +173,6 @@ void TitleScene::Draw(void)
 
 void TitleScene::Release(void)
 {
+	DeleteGraph(imgTitleLogo_);
+	DeleteGraph(imgTitle_);
 }

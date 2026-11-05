@@ -130,8 +130,10 @@ void EnemyOgre::InitAnimation(void)
         { "IDLE",         ANIM_TYPE::IDLE },
         { "WALK",         ANIM_TYPE::WALK },
         { "RUN",          ANIM_TYPE::RUN },
-        { "PREV_ATTACK",  ANIM_TYPE::PREV_ATTACK },
+        { "PREV_ATTACK",  ANIM_TYPE::PREV_ATTACK_01 },
+        { "PREV_ATTACK_02",  ANIM_TYPE::PREV_ATTACK_02 },
         { "ATTACK_1",     ANIM_TYPE::ATTACK_1 },
+        { "ATTACK_2",     ANIM_TYPE::ATTACK_2 },
         { "DISCOVERY",    ANIM_TYPE::DISCOVERY },
         { "DAMAGE_SMALL", ANIM_TYPE::DAMAGE_SMALL },
         { "DIE",          ANIM_TYPE::DIE },
@@ -194,10 +196,10 @@ void EnemyOgre::ChangeState(STATE state)
         EffekseerEffect::GetInstance()->AttackLightEffect(
             MV1GetFramePosition(transform_.modelId, attackEndFrameIndex_),
             { 10.0f,10.0f,10.0f }, AsoUtility::VECTOR_ZERO);
-        animController_->Play(static_cast<int>(ANIM_TYPE::PREV_ATTACK), false);
+        animController_->Play(static_cast<int>(ANIM_TYPE::PREV_ATTACK_02), false);
         break;
     case STATE::ATTACK:
-        animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_1), false);
+        animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_2), false);
         break;
     case STATE::DIE:
         animController_->Play(static_cast<int>(ANIM_TYPE::DIE), false);

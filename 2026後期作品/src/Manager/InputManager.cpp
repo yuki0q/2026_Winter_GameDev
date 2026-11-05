@@ -72,6 +72,141 @@ void InputManager::Init(void)
 	info.keyTrgDown = false;
 	info.keyTrgUp = false;
 	mouseInfos_.emplace(info.key, info);
+
+	// デフォルトのキーコンフィグ設定
+	// 攻撃 = 左クリック または パッドの Y/上ボタン
+	SetBinding(ACTION::ATTACK, -1, MOUSE_INPUT_LEFT, JOYPAD_BTN::TOP);
+
+	// パリィ/シーン遷移 = SPACEキー または パッドの B/右ボタン
+	SetBinding(ACTION::PARRY, KEY_INPUT_SPACE, -1, JOYPAD_BTN::RIGHT);
+
+	// 回避/ダッシュ = LSHIFTキー または パッドの A/下ボタン
+	SetBinding(ACTION::AVOID_DASH, KEY_INPUT_LSHIFT, -1, JOYPAD_BTN::DOWN);
+
+	// アイテムを拾う = Fキー または パッドの X/左ボタン
+	SetBinding(ACTION::PICK_UP, KEY_INPUT_F, -1, JOYPAD_BTN::LEFT);
+
+	// バッグを開く = Bキー または パッドの X/左ボタン + LB
+	SetBinding(ACTION::OPEN_BAG, KEY_INPUT_B, -1, JOYPAD_BTN::LB, JOYPAD_BTN::LEFT);
+
+	// スキル = Eキー または パッドの Y/上ボタン + LB
+	SetBinding(ACTION::SKILL, KEY_INPUT_E, -1, JOYPAD_BTN::LB, JOYPAD_BTN::TOP);
+
+	// 必殺技 = Qキー または パッドのLB + RB
+	SetBinding(ACTION::ULTIMET, KEY_INPUT_Q, -1, JOYPAD_BTN::LB, JOYPAD_BTN::RB);
+
+	// ポーズ/閉じる = ECSキー または パッドのSTART
+	SetBinding(ACTION::PAUSE, KEY_INPUT_ESCAPE, -1, JOYPAD_BTN::START);
+}
+
+void InputManager::SetBinding(ACTION action, int kbKey, int mouseBtn, JOYPAD_BTN padBtn1, JOYPAD_BTN padBtn2)
+{
+	bindings_[action] = { kbKey, mouseBtn, padBtn1, padBtn2 };
+}
+
+const InputManager::Binding& InputManager::GetBinding(ACTION action) const
+{
+	auto it = bindings_.find(action);
+	if (it != bindings_.end()) {
+		return it->second;
+	}
+	static Binding empty{ -1, -1, JOYPAD_BTN::MAX };
+	return empty;
+}
+
+bool InputManager::IsActionNew(ACTION action) const
+{
+	auto it = bindings_.find(action);
+	if (it == bindings_.end()) return false;
+
+	const auto& bind = it->second;
+
+	// キーボード判定
+	if (bind.keyBoardKey != -1 && IsNew(bind.keyBoardKey)) {
+		return true;
+	}
+	// マウス判定
+	if (bind.mouseButton != -1 && FindMouse(bind.mouseButton).keyNew) {
+		return true;
+	}
+	// パッド判定 (PAD1を対象とする例)
+	if (bind.padBtn1 != JOYPAD_BTN::MAX && IsPadBtnNew(JOYPAD_NO::PAD1, bind.padBtn1)) {
+		return true;
+	}
+
+	return false;
+}
+
+bool InputManager::IsActionTrgDown(ACTION action) const
+{
+	auto it = bindings_.find(action);
+	if (it == bindings_.end()) return false;
+
+	const auto& bind = it->second;
+
+	// キーボード判定
+	if (bind.keyBoardKey != -1 && IsTrgDown(bind.keyBoardKey)) {
+		return true;
+	}
+	// マウス判定
+	if (bind.mouseButton != -1 && FindMouse(bind.mouseButton).keyTrgDown) {
+		return true;
+	}
+	// パッド判定 (PAD1を対象とする例)
+	if (bind.padBtn1 != JOYPAD_BTN::MAX)
+	{
+		if (bind.padBtn2 != JOYPAD_BTN::MAX)
+		{
+			// ▼ 同時押しの判定 ▼
+			// IsPadBtnNew は「現在押されているか（ホールド）」、IsPadBtnTrgDown は「今押された瞬間か」と仮定しています。
+			// ※お使いの関数名に合わせて微調整してください。
+
+			bool btn1Trg = IsPadBtnTrgDown(JOYPAD_NO::PAD1, bind.padBtn1);
+			bool btn1On = IsPadBtnNew(JOYPAD_NO::PAD1, bind.padBtn1);
+
+			bool btn2Trg = IsPadBtnTrgDown(JOYPAD_NO::PAD1, bind.padBtn2);
+			bool btn2On = IsPadBtnNew(JOYPAD_NO::PAD1, bind.padBtn2);
+
+			// 「Btn2を押しながら Btn1をポンと押した」 または 「Btn1を押しながら Btn2をポンと押した」
+			if ((btn1Trg && btn2On) || (btn2Trg && btn1On))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			// ▼ 単押しの判定 ▼
+			if (IsPadBtnTrgDown(JOYPAD_NO::PAD1, bind.padBtn1))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool InputManager::IsActionTrgUp(ACTION action) const
+{
+	auto it = bindings_.find(action);
+	if (it == bindings_.end()) return false;
+
+	const auto& bind = it->second;
+
+	// キーボード判定
+	if (bind.keyBoardKey != -1 && IsTrgUp(bind.keyBoardKey)) {
+		return true;
+	}
+	// マウス判定
+	if (bind.mouseButton != -1 && FindMouse(bind.mouseButton).keyTrgUp) {
+		return true;
+	}
+	// パッド判定 (PAD1を対象とする例)
+	if (bind.padBtn1 != JOYPAD_BTN::MAX && IsPadBtnTrgUp(JOYPAD_NO::PAD1, bind.padBtn1)) {
+		return true;
+	}
+
+	return false;
 }
 
 void InputManager::Update(void)
