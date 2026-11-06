@@ -19,13 +19,14 @@ void EnemyDataTable::Load(void)
 	params_.clear();
 	anims_.clear();
 	spawns_.clear();
+	attackRates_.clear();
 
 	LoadParam();
 	LoadAnim();
 	LoadSpawn();
+	LoadAttack();
 
 	isLoaded_ = true;
-
 }
 
 EnemyParam EnemyDataTable::GetParam(const std::string& type)
@@ -65,6 +66,28 @@ const std::vector<EnemySpawnData>& EnemyDataTable::GetSpawns(void)
 {
 	EnsureLoaded();
 	return spawns_;
+}
+
+float EnemyDataTable::GetAttackRate(const std::string& type, const std::string& motion)
+{
+
+	EnsureLoaded();
+
+	// 行が無いモーションは等倍（警告は出さない）
+	auto typeIt = attackRates_.find(type);
+	if (typeIt == attackRates_.end())
+	{
+		return 1.0f;
+	}
+
+	auto motionIt = typeIt->second.find(motion);
+	if (motionIt == typeIt->second.end())
+	{
+		return 1.0f;
+	}
+
+	return motionIt->second;
+
 }
 
 void EnemyDataTable::EnsureLoaded(void)
@@ -172,6 +195,28 @@ void EnemyDataTable::LoadSpawn(void)
 			CsvLoader::ToFloat(r[3]));
 
 		spawns_.push_back(s);
+	}
+
+}
+
+void EnemyDataTable::LoadAttack(void)
+{
+
+	// type,motion,rate
+	auto rows = CsvLoader::Load(PATH_CSV + "EnemyAttack.csv");
+	if (rows.empty())
+	{
+		LogWarning("[EnemyDataTable] EnemyAttack.csv を読み込めませんでした。ダメージ倍率は全て等倍になります");
+	}
+
+	for (const auto& r : rows)
+	{
+		if (r.size() < 3)
+		{
+			continue;
+		}
+
+		attackRates_[r[0]][r[1]] = CsvLoader::ToFloat(r[2], 1.0f);
 	}
 
 }

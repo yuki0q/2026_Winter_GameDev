@@ -48,6 +48,19 @@ struct WeaponParam
 	int   damage = 10;
 };
 
+// 斬撃（飛び道具）のパラメータ（PlayerSlash.csv）
+struct PlayerSlashParam
+{
+	int   damage = 15;				// 1回あたりのダメージ（敵ごとに1回だけ当たる）
+	float speed = 1500.0f;			// 飛ぶ速さ（1秒あたりの距離）
+	float range = 1500.0f;			// 飛距離（ここまで飛ぶと消える）
+	float width = 120.0f;			// 横幅の半分（当たり判定・見た目の左右の広がり）
+	float radius = 30.0f;			// 当たり判定の太さ
+	float cooldown = 1.0f;			// 次に撃てるまでの時間（秒）
+	float spawnHeight = 90.0f;		// 発射位置の高さ（プレイヤーの足元から）
+	float spawnOffset = 80.0f;		// 発射位置の前方へのずれ
+};
+
 // アニメーション1件分（PlayerAnim.csv）
 struct PlayerAnimData
 {
@@ -72,6 +85,9 @@ public:
 	// 武器1本ごとのパラメータ
 	static WeaponParam GetWeaponParam(const std::string& weapon);
 
+	// 斬撃（飛び道具）のパラメータ
+	static PlayerSlashParam GetSlashParam(void);
+
 	// 攻撃モーションごとのダメージ倍率（player_attack.csv）
 	// motion は「ATTACK_1」「DASH_ATTACK」「PARRY_ATTACK」など。無ければ 1.0
 	static float GetAttackRate(const std::string& weapon, const std::string& motion);
@@ -88,12 +104,13 @@ private:
 	static void LoadWeapon(void);
 	static void LoadAnim(void);
 	static void LoadAttack(void);
+	static void LoadSlash(void);
 
 	static inline bool isLoaded_ = false;
 	static inline PlayerParam param_;
+	static inline PlayerSlashParam slash_;
 	static inline std::map<std::string, PlayerStyle> styles_;
 	static inline std::map<std::string, WeaponParam> weapons_;
 	static inline std::map<std::string, std::vector<PlayerAnimData>> anims_;
 	static inline std::map<std::string, std::map<std::string, float>> attackRates_;
 };
-

@@ -68,6 +68,12 @@ public:
     // 攻撃のダメージ量（武器で攻撃する敵は、武器のダメージを返すように override する）
     virtual int GetAttackDamage(void) const { return 10; }
 
+    // 現在の攻撃モーションに応じたダメージ倍率（EnemyAttack.csv）
+    virtual float GetAttackDamageRate(void) const;
+
+    // 基本ダメージ(GetAttackDamage)に、現在の攻撃モーションの倍率をかけた実際のダメージ量
+    int CalcAttackDamage(void) const;
+
     void SetPosition(VECTOR spawnPos);
 
     STATE GetCurrentState() const { return currentState_; }
@@ -135,6 +141,10 @@ protected:
     // 攻撃用コライダの更新関数
     void UpdateAttackCollider(void);
 
+    // 現在の攻撃モーション名（EnemyAttack.csv の motion 列と同じ名前）
+    // 攻撃が複数ある敵は、ChangeState(ATTACK) でどの攻撃を出すか決める時にここへ設定する
+    std::string attackMotion_ = "ATTACK_1";
+
     // 現在のステート
     STATE currentState_;
 
@@ -148,4 +158,7 @@ protected:
     Quaternion currentSearchQuaRot_;
     // 基準方向の初期化フラグ
     bool isInitBaseForward_;
+
+    // 選択された攻撃パターン（0: ATTACK_1系, 1: ATTACK_2系）
+    int attackPattern_;
 };

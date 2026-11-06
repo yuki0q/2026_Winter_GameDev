@@ -3,6 +3,8 @@
 #include "PlayerDataTable.h"
 #include "../Weapon/WeaponBase.h"
 #include <vector>
+#include <functional>
+#include <utility>
 
 class Player : public CharactorBase
 {
@@ -12,25 +14,27 @@ public:
 	// アニメーション
 	enum class ANIM_TYPE
 	{
-		IDLE,
-		WALK,
-		RUN,
-		WEAPON_RUN,	// 武器持ちダッシュ
-		FAST_RUN,
+		IDLE,			// 待機
+		WALK,			// 歩く
+		RUN,			// 走る
+		WEAPON_RUN,		// 武器持ちダッシュ
+		FAST_RUN,		// 走り始め
 		JUMP,
-		ATTACK_1,	// 攻撃１
-		ATTACK_2,	// 攻撃２
-		ATTACK_3,	// 攻撃３
-		ATTACK_4,	// 攻撃４
-		DASH_ATTACK,// ダッシュ攻撃
-		AVOID,		// 回避
-		PARRY,		// パリィ
-		PARRYED,	// パリィ後
-		PARRYATTACK,// パリィ攻撃
-		SHEATHING,	// 抜刀
-		UNSHEATHED,	// 納刀
-		DAMAGE,
-		DIE
+		ATTACK_1,		// 攻撃１
+		ATTACK_2,		// 攻撃２
+		ATTACK_3,		// 攻撃３
+		ATTACK_4,		// 攻撃４
+		DASH_ATTACK,	// ダッシュ攻撃
+		PREV_SLASH_ATTACK,	// 必殺技前
+		SLASH_ATTACK,	// 必殺技
+		AVOID,			// 回避
+		PARRY,			// パリィ
+		PARRYED,		// パリィ後
+		PARRYATTACK,	// パリィ攻撃
+		SHEATHING,		// 抜刀
+		UNSHEATHED,		// 納刀
+		DAMAGE,			//ダメージ
+		DIE				// 死亡
 		//MAX,
 	};
 
@@ -45,6 +49,8 @@ public:
 		PARRY,
 		PARRYED,
 		PARRYATTACK,
+		PREV_ULT_ATTACK,
+		ULT_ATTACK,
 		JUMP,
 		DAMAGE,
 		DIE,
@@ -75,11 +81,14 @@ public:
 	void SetWarning(bool isWarning) { isWarning_ = isWarning; }
 	bool IsWarning(void) const { return isWarning_; }
 
-	int GetAttackDamage(void) const;
 	// 現在の攻撃モーション（コンボ段・ダッシュ攻撃・パリィ攻撃）に応じたダメージ倍率（player_attack.csv）
 	float GetAttackDamageRate(void) const;
 	// 武器の基本ダメージに、現在の攻撃モーションの倍率をかけた実際のダメージ量
 	int CalcAttackDamage(int baseDamage) const;
+
+	// 斬撃（飛び道具）を発射する時に呼ばれる処理を登録する（pos: 発射位置, dir: 発射方向）
+	using FireSlashCallback = std::function<void(const VECTOR& pos, const VECTOR& dir)>;
+	void SetOnFireSlash(FireSlashCallback callback) { onFireSlash_ = std::move(callback); }
 
 private:
 
@@ -114,6 +123,8 @@ protected:
 	void UpdateParry(void);
 	void UpdateParryed(void);
 	void UpdateParryAttack(void);
+	void UpdatePrevUltAttack(void);
+	void UpdateUltAttack(void);
 	void UpdateDamage(void);
 	void UpdateDie(void);
 	void UpdateEnd(void);
@@ -144,6 +155,8 @@ protected:
 	// 攻撃中の先行入力フラグ
 	bool hasComboInput_;
 
+	bool isSlash_;
+
 	// コンボ猶予（攻撃が途切れても、一定時間は続きの段から再開できる）
 	// 猶予の残り時間（秒）。0 なら猶予なし
 	float comboTimer_;
@@ -156,6 +169,18 @@ protected:
 	int GetStartAttackStep(void) const;
 	// コンボと猶予を完全にリセットする
 	void ResetCombo(void);
+
+	// 斬撃の発生処理
+	void CreateSlash(void);
+
+	// 斬撃の発射（Qキー）とクールタイムの更新
+	void UpdateSlash(void);
+
+	// 次に斬撃を撃てるまでの残り時間（秒）
+	float slashCooldown_;
+
+	// 斬撃を発射する時の通知先（GameScene などが登録する）
+	FireSlashCallback onFireSlash_;
 
 	// CSV(player_param.csv)から読み込んだ共通パラメータ
 	PlayerParam param_;

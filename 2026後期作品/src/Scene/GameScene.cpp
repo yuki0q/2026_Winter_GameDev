@@ -16,6 +16,7 @@
 #include "../Object/Actor/Item/ItemManager.h"
 #include "../Object/Actor/Item/ItemHpPotion.h"
 #include "../Object/Actor/UI/UIGame.h"
+#include "../Object/Actor/Projectile/ProjectileManager.h"
 #include "../Application.h"
 #include "../Effect/EffekseerEffect.h"
 #include "GameScene.h"
@@ -60,6 +61,14 @@ void GameScene::Init(void)
 	
 	player_ = std::make_shared<Player>();
 	player_->Init();
+
+	// 斬撃（飛び道具）
+	projectileManager_ = std::make_shared<ProjectileManager>();
+	projectileManager_->Init();
+	player_->SetOnFireSlash([this](const VECTOR& pos, const VECTOR& dir)
+		{
+			projectileManager_->SpawnSlash(pos, dir);
+		});
 
 	enemyManager_ = std::make_shared<EnemyManager>();
 	enemyManager_->Init();
@@ -188,6 +197,7 @@ void GameScene::Update(void)
 		player_->Update();
 		enemyManager_->Update();
 		itemManager_->Update();
+		projectileManager_->Update();
 
 		Collision();
 	}
@@ -240,11 +250,9 @@ void GameScene::Draw(void)
 	ShadowMap_DrawSetup(shadowMapHandle_);
 
 	stage_->Draw();
-
 	player_->Draw();
-
 	enemyManager_->Draw();
-
+	projectileManager_->Draw();
 	itemManager_->Draw();
 
 	// シャドウマップへの描画を終了
@@ -254,11 +262,9 @@ void GameScene::Draw(void)
 	SetUseShadowMap(0, shadowMapHandle_);
 
 	stage_->Draw();
-
 	player_->Draw();
-
 	enemyManager_->Draw();
-
+	projectileManager_->Draw();
 	itemManager_->Draw();
 
 	// 描画に使用するシャドウマップの設定を解除
@@ -305,6 +311,8 @@ void GameScene::Release(void)
 	enemyManager_->Release();
 	itemManager_->Release();
 
+	if (projectileManager_) { projectileManager_->Release(); }
+
 	SoundManager::GetInstance()->StopBGM();
 	SoundManager::GetInstance()->DeleteSceneSound(LoadScene::GAME);
 
@@ -319,7 +327,8 @@ void GameScene::Collision(void)
 	CollisionWeaponToEnemy();
 	CollisionEnemyToPlayer();
 	CollisionParry();
-	
+	projectileManager_->CollisionToEnemies(enemyManager_->GetEnemies());
+
 	if (itemManager_)
 	{
 		itemManager_->CheckCollection(player_);
@@ -413,7 +422,7 @@ void GameScene::CollisionEnemyToPlayer(void)
 
 			// 「前フレームのリストに入っていなかった」場合のみダメージを与える
 			if (!isAnyEnemyHittingNow || prevAttackHit_) continue;
-			player_->OnDamage(enemy->GetAttackDamage(), enemy->GetTransform().pos);
+			player_->OnDamage(enemy->CalcAttackDamage(), enemy->GetTransform().pos);
 		
 	}
 	// 状態を更新

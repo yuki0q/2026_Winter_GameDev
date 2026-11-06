@@ -8,6 +8,7 @@ class Player;
 class EnemyManager;
 class UIGame;
 class ItemManager;
+class ProjectileManager;
 
 class GameScene : public SceneBase
 {
@@ -48,6 +49,7 @@ private:
 	std::shared_ptr <EnemyManager> enemyManager_;
 	std::unique_ptr<UIGame> gameUI_;
 	std::shared_ptr<ItemManager> itemManager_;
+	std::shared_ptr<ProjectileManager> projectileManager_;
 
 	// 1回の攻撃中にすでにヒットした敵のポインタ（アドレス）を記録するセット
 	std::set<const void*> prevHit_;

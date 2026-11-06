@@ -127,6 +127,7 @@ void EnemyAlter::ChangeState(STATE state)
 		animController_->Play(static_cast<int>(ANIM_TYPE::DAMAGE_SMALL), false);
 		break;
 	case STATE::WALK:
+        walkTimer_ = 0.0f;
 		animController_->Play(static_cast<int>(ANIM_TYPE::WALK), true);
 		break;
 	case STATE::RUN:
@@ -163,11 +164,11 @@ void EnemyAlter::UpdateIdle(void)
         ChangeState(STATE::DISCOVERY);
     }
 
-    //if (!SearchCircle(playerPos))
-    //{
-    //    
-    //    ChangeState(STATE::WALK);
-    //}
+    if (!SearchCircle(playerPos))
+    {
+        
+        ChangeState(STATE::WALK);
+    }
 }
 
 void EnemyAlter::UpdateDiscovery(void)
@@ -222,11 +223,12 @@ void EnemyAlter::UpdateWalk(void)
     movePow_ = VScale(transform_.rot, 3.0f);*/
    
     // 視界内にプレイヤーが入ったかチェック
-    if (SearchPlayer(playerPos))
+    if (SearchCircle(playerPos))
     {
         // 追跡状態へ遷移
-        ChangeState(STATE::RUN);
+        ChangeState(STATE::DISCOVERY);
     }
+
     walkTimer_ -= 1.0f;
     if (walkTimer_ <= 0.0f)
     {

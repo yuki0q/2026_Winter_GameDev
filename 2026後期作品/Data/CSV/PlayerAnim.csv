@@ -17,3 +17,5 @@ SWORD,ATTACK_2,45,Charactor/Player/ShortSword/swordSlash_2.mv1
 SWORD,ATTACK_3,60,Charactor/Player/ShortSword/swordSlash_3.mv1
 SWORD,ATTACK_4,60,Charactor/Player/ShortSword/swordSlash_4.mv1
 SWORD,DASH_ATTACK,60,Charactor/Player/ShortSword/swordDashAttack2.mv1
+SWORD,SLASH_ATTACK,60,Charactor/Player/ShortSword/flySlash.mv1
+SWORD,PREV_SLASH_ATTACK,60,Charactor/Player/ShortSword/prevFlySlash.mv1

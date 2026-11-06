@@ -1,0 +1,5 @@
+﻿# 斬撃（Qキーで飛ばす飛び道具）のパラメータ（1行目のみ使用）
+# speed: 秒速  range: 飛距離  width: 横幅の半分  radius: 当たり判定の太さ  cooldown: 再使用までの秒数
+# spawnHeight/spawnOffset: プレイヤーの足元からの発射高さ / 前方へのずれ
+skill,damage,speed,range,width,radius,cooldown,spawnHeight,spawnOffset
+SLASH,15,1500,1500,120,30,1.0,90,80

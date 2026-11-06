@@ -21,6 +21,7 @@ namespace
 void PlayerDataTable::Load(void)
 {
 	param_ = PlayerParam{};
+	slash_ = PlayerSlashParam{};
 	styles_.clear();
 	weapons_.clear();
 	anims_.clear();
@@ -31,6 +32,7 @@ void PlayerDataTable::Load(void)
 	LoadWeapon();
 	LoadAnim();
 	LoadAttack();
+	LoadSlash();
 
 	isLoaded_ = true;
 }
@@ -39,6 +41,12 @@ PlayerParam PlayerDataTable::GetParam(void)
 {
 	EnsureLoaded();
 	return param_;
+}
+
+PlayerSlashParam PlayerDataTable::GetSlashParam(void)
+{
+	EnsureLoaded();
+	return slash_;
 }
 
 PlayerStyle PlayerDataTable::GetStyle(const std::string& weapon)
@@ -307,5 +315,40 @@ void PlayerDataTable::LoadAttack(void)
 
 		attackRates_[r[0]][r[1]] = CsvLoader::ToFloat(r[2], 1.0f);
 	}
+
+}
+
+void PlayerDataTable::LoadSlash(void)
+{
+
+	// skill,damage,speed,range,width,radius,cooldown,spawnHeight,spawnOffset
+	const size_t COLUMN_NUM = 9;
+
+	auto rows = CsvLoader::Load(PATH_CSV + "PlayerSlash.csv");
+	if (rows.empty())
+	{
+		LogWarning("[PlayerDataTable] PlayerSlash.csv を読み込めませんでした。初期値を使用します");
+		return;
+	}
+
+	// 1行目だけ使用
+	const auto& r = rows[0];
+	if (r.size() < COLUMN_NUM)
+	{
+		LogWarning("[PlayerDataTable] PlayerSlash.csv の列数が足りません");
+		return;
+	}
+
+	PlayerSlashParam s;
+	s.damage = CsvLoader::ToInt(r[1], s.damage);
+	s.speed = CsvLoader::ToFloat(r[2], s.speed);
+	s.range = CsvLoader::ToFloat(r[3], s.range);
+	s.width = CsvLoader::ToFloat(r[4], s.width);
+	s.radius = CsvLoader::ToFloat(r[5], s.radius);
+	s.cooldown = CsvLoader::ToFloat(r[6], s.cooldown);
+	s.spawnHeight = CsvLoader::ToFloat(r[7], s.spawnHeight);
+	s.spawnOffset = CsvLoader::ToFloat(r[8], s.spawnOffset);
+
+	slash_ = s;
 
 }

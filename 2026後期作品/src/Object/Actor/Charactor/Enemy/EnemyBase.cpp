@@ -1,3 +1,4 @@
+#include <cmath>
 #include "../../../../Utility/AsoUtility.h"
 #include "../../../Collider/ColliderCapsule.h"
 #include "../../Weapon/WeaponManager.h"
@@ -15,7 +16,8 @@ EnemyBase::EnemyBase(ENEMY_TYPE type)
     attackStartFrameIndex_(),
     attackEndFrameIndex_(),
     attackLocalPosTop_({}),
-    attackLocalPosDown_({})
+    attackLocalPosDown_({}),
+    attackPattern_(0)
 {
     // 敵種別に対応するパラメータをCSVから取得（Init()より前に確定させる）
     param_ = EnemyDataTable::GetParam(TypeToName(type));
@@ -191,6 +193,26 @@ void EnemyBase::UpdateAttackCollider(void)
     //     attackTransform_.quaRot = boneRot;
     //     attackTransform_.Update();
     //}
+}
+
+float EnemyBase::GetAttackDamageRate(void) const
+{
+    // 攻撃中以外は等倍
+    if (currentState_ != STATE::ATTACK)
+    {
+        return 1.0f;
+    }
+
+    return EnemyDataTable::GetAttackRate(TypeToName(enemyType_), attackMotion_);
+}
+
+int EnemyBase::CalcAttackDamage(void) const
+{
+    int damage = static_cast<int>(std::lround(
+        static_cast<float>(GetAttackDamage()) * GetAttackDamageRate()));
+
+    // 倍率を小さくしすぎても、ヒットした攻撃のダメージが0にならないようにする
+    return damage < 1 ? 1 : damage;
 }
 
 void EnemyBase::OnDamage(int damage, VECTOR attackedPos)

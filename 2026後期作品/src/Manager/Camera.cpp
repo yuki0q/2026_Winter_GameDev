@@ -190,6 +190,7 @@ void Camera::ChangeMode(MODE mode)
 
 void Camera::ProcessZoom(void)
 {
+	if (isZooming_) return;
 	auto& ins = InputManager::GetInstance();
 	int wheel = ins.GetMouseWheel();
 
@@ -259,6 +260,8 @@ void Camera::SyncFollow(void)
 
 void Camera::ProcessRot(bool isLimit)
 {
+	if (isZooming_) return;
+
 	auto& ins = InputManager::GetInstance();
 	if (GetJoypadNum() == 0)
 	{

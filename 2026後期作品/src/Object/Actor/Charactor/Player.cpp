@@ -82,7 +82,8 @@ Player::Player(void)
 	hasComboInput_(false),
 	comboTimer_(0.0f),
 	lastAttackStep_(0),
-	isWarning_(false)
+	isWarning_(false),
+	isSlash_(false)
 {
 	// CSVからパラメータを取得（Init()より前に確定させる）
 	param_ = PlayerDataTable::GetParam();
@@ -214,6 +215,9 @@ void Player::UpdateProcess(void)
 	// コンボ猶予時間の経過
 	UpdateComboTimer();
 
+	// 斬撃（飛び道具）の発射
+	UpdateSlash();
+
 	movePow_ = AsoUtility::VECTOR_ZERO;
 	moveSpeed_ = 0.0f;
 
@@ -243,6 +247,12 @@ void Player::UpdateProcess(void)
 		break;
 	case STATE::PARRYATTACK:
 		UpdateParryAttack();
+		break;
+	case STATE::PREV_ULT_ATTACK:
+		UpdatePrevUltAttack();
+		break;
+	case STATE::ULT_ATTACK:
+		UpdateUltAttack();
 		break;
 	case STATE::DAMAGE: 
 		UpdateDamage();  
@@ -295,6 +305,62 @@ int Player::CalcAttackDamage(int baseDamage) const
 
 	// 倍率を小さくしすぎても、ヒットした攻撃のダメージが0にならないようにする
 	return damage < 1 ? 1 : damage;
+}
+
+
+void Player::CreateSlash(void)
+{
+	if (!isSlash_)return;
+
+	const PlayerSlashParam slash = PlayerDataTable::GetSlashParam();
+
+	// プレイヤーの向いている方向（水平）に、少し前・少し高い位置から発射
+	VECTOR dir = transform_.GetForward();
+	dir.y = 0.0f;
+	if (VSize(dir) < 0.001f)
+	{
+		dir = AsoUtility::DIR_F;
+	}
+	dir = AsoUtility::VNormalize(dir);
+
+	VECTOR pos = VAdd(transform_.pos, VScale(dir, slash.spawnOffset));
+	pos.y += slash.spawnHeight;
+
+	if (onFireSlash_)
+	{
+		onFireSlash_(pos, dir);
+	}
+
+	isSlash_ = false;
+}
+
+void Player::UpdateSlash(void)
+{
+	// 斬撃を撃つキー
+	auto const& ins = InputManager::GetInstance();
+	bool IsUlt = ins.IsActionTrgDown(InputManager::ACTION::ULTIMET);
+
+	// クールタイムの経過
+	if (slashCooldown_ > 0.0f)
+	{
+		slashCooldown_ -= scnMng_.GetDeltaTime();
+	}
+
+	// 撃てるのは、待機・歩き・走りの間だけ（攻撃・回避・パリィ・被ダメージ中は撃てない）
+	if (currentState_ != STATE::IDLE &&
+		currentState_ != STATE::WALK &&
+		currentState_ != STATE::ATTACK &&
+		currentState_ != STATE::RUN)
+	{
+		return;
+	}
+
+	if (slashCooldown_ > 0.0f || !onFireSlash_) return;
+
+	if (!IsUlt) return;
+
+	const PlayerSlashParam slash = PlayerDataTable::GetSlashParam();
+	slashCooldown_ = slash.cooldown;
 }
 
 void Player::UpdateComboTimer(void)
@@ -395,6 +461,29 @@ void Player::ChangeState(STATE state)
 		animController_->Play(static_cast<int>(ANIM_TYPE::PARRYATTACK), false);
 		isDashEnable_ = false;
 		break;
+	case STATE::PREV_ULT_ATTACK:
+		animController_->Play(static_cast<int>(ANIM_TYPE::PREV_SLASH_ATTACK), false);
+		isDashEnable_ = false;
+		isSlash_ = false;
+		{
+			Camera* camera = scnMng_.GetCamera();
+			if (camera)
+			{
+				// プレイヤーの現在地から少し前方の座標をズーム中心にする
+				VECTOR forward = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
+				VECTOR zoomPoint1 = transform_.pos;
+				VECTOR zoomPoint2 = VAdd(transform_.pos, VScale(forward, 150.0f)); // 前方150の地点
+
+				// 演出時間（例: 1.5秒間ズーム）
+				camera->TriggerZoomIn(zoomPoint1, zoomPoint2, 1.0f);
+			}
+		}
+		break;
+	case STATE::ULT_ATTACK:
+		animController_->Play(static_cast<int>(ANIM_TYPE::SLASH_ATTACK), false);
+		isDashEnable_ = false;
+		isSlash_ = true;
+		break;
 	case STATE::DAMAGE:
 		animController_->Play(static_cast<int>(ANIM_TYPE::DAMAGE), false);
 		// 攻撃終了時は判定をオフにする
@@ -475,6 +564,7 @@ void Player::UpdateIdle(void)
 
 	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
 	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+	bool IsUlt = ins.IsActionTrgDown(InputManager::ACTION::ULTIMET);
 
 	// 攻撃優先（クリック）
 	if (IsAttack)
@@ -488,6 +578,13 @@ void Player::UpdateIdle(void)
 	if (IsParry)
 	{
 		ChangeState(STATE::PARRY);
+		return;
+	}
+
+	// 必殺技
+	if (IsUlt)
+	{
+		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
 	}
 
@@ -520,6 +617,7 @@ void Player::UpdateWalk(void)
 
 	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
 	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+	bool IsUlt = ins.IsActionTrgDown(InputManager::ACTION::ULTIMET);
 
 	if (IsAttack)
 	{
@@ -531,6 +629,12 @@ void Player::UpdateWalk(void)
 	if (IsParry)
 	{
 		ChangeState(STATE::PARRY);
+		return;
+	}
+	// 必殺技
+	if (IsUlt)
+	{
+		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
 	}
 
@@ -564,6 +668,7 @@ void Player::UpdateRun(void)
 
 	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
 	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+	bool IsUlt = ins.IsActionTrgDown(InputManager::ACTION::ULTIMET);
 
 	if (IsAttack)
 	{
@@ -575,6 +680,12 @@ void Player::UpdateRun(void)
 	if (IsParry)
 	{
 		ChangeState(STATE::PARRY);
+		return;
+	}
+
+	if (IsUlt)
+	{
+		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
 	}
 
@@ -601,6 +712,7 @@ void Player::UpdateAvoid(void)
 
 	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
 	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+	bool IsUlt = ins.IsActionTrgDown(InputManager::ACTION::ULTIMET);
 
 	// 攻撃優先（クリック）
 	if (IsAttack)
@@ -616,7 +728,14 @@ void Player::UpdateAvoid(void)
 		ChangeState(STATE::PARRY);
 		return;
 	}
-	
+
+	// 必殺技
+	if (IsUlt)
+	{
+		ChangeState(STATE::PREV_ULT_ATTACK);
+		return;
+	}
+
 	bool isDash = false;
 	VECTOR dir = GetInputDirection(isDash);
 	MoveDirection(dir, style_.dashSpeed);
@@ -652,6 +771,7 @@ void Player::UpdateAttack(void)
 
 	bool IsAttack = ins.IsActionTrgDown(InputManager::ACTION::ATTACK);
 	bool IsParry = ins.IsActionTrgDown(InputManager::ACTION::PARRY);
+	bool IsUlt = ins.IsActionTrgDown(InputManager::ACTION::ULTIMET);
 
 	bool isDash = false;
 	VECTOR dir = GetInputDirection(isDash);
@@ -683,6 +803,16 @@ void Player::UpdateAttack(void)
 		ResetCombo();
 		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
 		ChangeState(STATE::PARRY);
+		return;
+	}
+
+	// 必殺技
+	if (IsUlt)
+	{
+		attackStep_ = 0;
+		hasComboInput_ = false;
+		ResetCombo();
+		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
 	}
 
@@ -820,6 +950,33 @@ void Player::UpdateParryAttack(void)
 	}
 }
 
+void Player::UpdatePrevUltAttack(void)
+{
+	// パリィアニメーションが終わるまで他の行動を遮断
+	if (animController_->IsEnd())
+	{
+		ChangeState(STATE::ULT_ATTACK);
+	}
+}
+
+void Player::UpdateUltAttack(void)
+{
+	// 攻撃中は武器の当たり判定を有効化
+	weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, true);
+
+	// 共通化した斬撃発生処理を呼び出す
+	CreateSlash();
+
+	// パリィアニメーションが終わるまで他の行動を遮断
+	if (animController_->IsEnd())
+	{
+		// 攻撃終了時は判定をオフにする
+		weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, false);
+
+		ChangeState(STATE::IDLE);
+	}
+}
+
 void Player::UpdateDamage(void)
 {
 	if (animController_->IsEnd())
@@ -859,17 +1016,6 @@ void Player::UpdateProcessPost(void)
 	if (isDead_) return;
 
 	weaponManager_->Update();
-}
-
-int Player::GetAttackDamage(void) const
-{
-	if (!weaponManager_)
-	{
-		return 10;
-	}
-
-	const auto& sword = weaponManager_->GetWeapon(WEAPON_SLOT::RIGHT_HAND);
-	return sword ? sword->GetDamage() : 10;
 }
 
 void Player::DrawDegug(void)
@@ -956,6 +1102,8 @@ void Player::InitAnimation(void)
 		{ "ATTACK_3",     ANIM_TYPE::ATTACK_3 },
 		{ "ATTACK_4",     ANIM_TYPE::ATTACK_4 },
 		{ "DASH_ATTACK",  ANIM_TYPE::DASH_ATTACK },
+		{ "PREV_SLASH_ATTACK",  ANIM_TYPE::PREV_SLASH_ATTACK },
+		{ "SLASH_ATTACK",  ANIM_TYPE::SLASH_ATTACK },
 		{ "AVOID",        ANIM_TYPE::AVOID },
 		{ "PARRY",        ANIM_TYPE::PARRY },
 		{ "PARRYED",      ANIM_TYPE::PARRYED },

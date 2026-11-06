@@ -2,6 +2,7 @@ TYPE,NAME,SPEED,PATH
 ALTER,IDLE,30,Charactor/Enemy/Alter/alterIdle.mv1
 ALTER,DISCOVERY,20,Charactor/Enemy/Alter/discover.mv1
 ALTER,RUN,40,Charactor/Enemy/Alter/mutant Run.mv1
+ALTER,WALK,40,Charactor/Enemy/Alter/walk.mv1
 ALTER,PREV_ATTACK,45,Charactor/Enemy/Alter/prevAttack_01.mv1
 ALTER,ATTACK_1,45,Charactor/Enemy/Alter/attack_01.mv1
 ALTER,DAMAGE_SMALL,60,Charactor/Enemy/Alter/damageHit.mv1

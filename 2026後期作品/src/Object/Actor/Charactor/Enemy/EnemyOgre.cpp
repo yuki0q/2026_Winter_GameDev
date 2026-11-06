@@ -192,14 +192,34 @@ void EnemyOgre::ChangeState(STATE state)
     case STATE::PREV_ATTACK:
         attackStartFrameIndex_ = param_.attackStartFrame;
         attackEndFrameIndex_ = param_.attackEndFrame;
+
+        attackPattern_ = GetRand(1);
+
         // 取得した座標にエフェクトを発生させる
         EffekseerEffect::GetInstance()->AttackLightEffect(
             MV1GetFramePosition(transform_.modelId, attackEndFrameIndex_),
             { 10.0f,10.0f,10.0f }, AsoUtility::VECTOR_ZERO);
-        animController_->Play(static_cast<int>(ANIM_TYPE::PREV_ATTACK_02), false);
+        
+        if (attackPattern_ == 0)
+        {
+            animController_->Play(static_cast<int>(ANIM_TYPE::PREV_ATTACK_01), false);
+        }
+        else
+        {
+            animController_->Play(static_cast<int>(ANIM_TYPE::PREV_ATTACK_02), false);
+        }
         break;
     case STATE::ATTACK:
-        animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_2), false);
+        if (attackPattern_ == 0)
+        {
+            attackMotion_ = "ATTACK_1";
+            animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_1), false);
+        }
+        else
+        {
+            attackMotion_ = "ATTACK_2";
+            animController_->Play(static_cast<int>(ANIM_TYPE::ATTACK_2), false);
+        }
         break;
     case STATE::DIE:
         animController_->Play(static_cast<int>(ANIM_TYPE::DIE), false);

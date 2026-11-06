@@ -6,23 +6,22 @@ class EnemyOgre : public EnemyBase
 	// アニメーション
 	enum class ANIM_TYPE
 	{
-		IDLE,
-		WALK,
-		RUN,
-		FAST_RUN,
-		JUMP,
-		PREV_ATTACK_01,// 攻撃前
-		PREV_ATTACK_02,// 攻撃前
-		ATTACK_1,	// 攻撃１
-		ATTACK_2,	// 攻撃２
-		ATTACK_3,	// 攻撃３
-		ATTACK_4,	// 攻撃４
-		DASHATTACK,	// ダッシュ攻撃
-		AVOID,
-		DISCOVERY,	// 追跡対象の発見
-		LOSS,		// 追跡対象の喪失
-		DAMAGE_SMALL,
-		DIE
+		IDLE,			// 待機
+		WALK,			// 歩く
+		RUN,			// 走る
+		FAST_RUN,		// 走り始め
+		PREV_ATTACK_01,	// 攻撃前
+		PREV_ATTACK_02,	// 攻撃前
+		ATTACK_1,		// 攻撃１
+		ATTACK_2,		// 攻撃２
+		ATTACK_3,		// 攻撃３
+		ATTACK_4,		// 攻撃４
+		DASHATTACK,		// ダッシュ攻撃
+		AVOID,			// 回避
+		DISCOVERY,		// 追跡対象の発見
+		LOSS,			// 追跡対象の喪失
+		DAMAGE_SMALL,	// 少量のダメージ
+		DIE				// 死亡
 		//MAX,
 	};
 

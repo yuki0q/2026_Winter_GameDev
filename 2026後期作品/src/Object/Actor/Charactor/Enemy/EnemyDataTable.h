@@ -59,15 +59,21 @@ public:
 	// スポーン情報一覧
 	static const std::vector<EnemySpawnData>& GetSpawns(void);
 
+	// 敵種別・攻撃モーションごとのダメージ倍率（EnemyAttack.csv）
+	// motion は「ATTACK_1」「ATTACK_2」など。行が無ければ 1.0
+	static float GetAttackRate(const std::string& type, const std::string& motion);
+
 private:
 
 	static void EnsureLoaded(void);
 	static void LoadParam(void);
 	static void LoadAnim(void);
 	static void LoadSpawn(void);
+	static void LoadAttack(void);
 
 	static inline bool isLoaded_ = false;
 	static inline std::map<std::string, EnemyParam> params_;
 	static inline std::map<std::string, std::vector<EnemyAnimData>> anims_;
 	static inline std::vector<EnemySpawnData> spawns_;
+	static inline std::map<std::string, std::map<std::string, float>> attackRates_;
 };

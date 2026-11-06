@@ -38,6 +38,8 @@
     <ClCompile Include="src\Object\Actor\Item\ItemHpPotion.cpp" />
     <ClCompile Include="src\Object\Actor\Item\ItemBase.cpp" />
     <ClCompile Include="src\Object\Actor\Item\ItemManager.cpp" />
+    <ClCompile Include="src\Object\Actor\Projectile\ProjectileManager.cpp" />
+    <ClCompile Include="src\Object\Actor\Projectile\SlashProjectile.cpp" />
     <ClCompile Include="src\Object\Actor\Weapon\WeaponAxe.cpp" />
     <ClCompile Include="src\Scene\GameOverScene.cpp" />
     <ClCompile Include="src\Scene\ClearScene.cpp" />
@@ -81,6 +83,7 @@
     <ClCompile Include="src\Object\Actor\UI\UIGame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Manager\ProjectileManager.h" />
     <ClInclude Include="src\Object\Actor\Item\ItemDataTable.h" />
     <ClInclude Include="src\Object\Actor\Item\ItemJewel.h" />
     <ClInclude Include="src\Object\Actor\Charactor\Enemy\EnemyOgre.h" />
@@ -100,6 +103,8 @@
     <ClInclude Include="src\Object\Actor\Item\ItemHpPotion.h" />
     <ClInclude Include="src\Object\Actor\Item\ItemBase.h" />
     <ClInclude Include="src\Object\Actor\Item\ItemManager.h" />
+    <ClInclude Include="src\Object\Actor\Projectile\ProjectileManager.h" />
+    <ClInclude Include="src\Object\Actor\Projectile\SlashProjectile.h" />
     <ClInclude Include="src\Object\Actor\Weapon\WeaponAxe.h" />
     <ClInclude Include="src\Scene\GameOverScene.h" />
     <ClInclude Include="src\Scene\ClearScene.h" />
