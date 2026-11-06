@@ -50,6 +50,15 @@ void ClearScene::Update(void)
 void ClearScene::Draw(void)
 {
 	DrawFormatString(10, 10, 0xffffff, "ゲームクリアシーン");
+
+	if (GetJoypadNum() == 0)
+	{
+		DrawFormatString(10, 500, 0xffffff, "SPACEでタイトルへ");
+	}
+	else
+	{
+		DrawFormatString(10, 500, 0xffffff, "Bでタイトルへ");
+	}
 }
 
 void ClearScene::Release(void)

@@ -168,7 +168,17 @@ void TitleScene::Draw(void)
 
 	DrawFormatString(10, 10, 0xffffff, "タイトルシーン");
 
-	DrawFormatString(10, 560, 0xffffff, "ESCキーで終了");
+	if (GetJoypadNum() == 0)
+	{
+		DrawFormatString(10, 500, 0xffffff, "SPACEキーでスタート");
+		DrawFormatString(10, 560, 0xffffff, "ESCキーで終了");
+	}
+	else
+	{
+		DrawFormatString(10, 500, 0xffffff, "Bボタンでスタート");
+		DrawFormatString(10, 560, 0xffffff, "STARTボタンで終了");
+	}
+	
 }
 
 void TitleScene::Release(void)

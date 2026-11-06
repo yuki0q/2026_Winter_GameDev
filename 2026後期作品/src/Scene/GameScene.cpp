@@ -390,6 +390,7 @@ void GameScene::CollisionWeaponToEnemy(void)
 			if (prevHit_.find(enemyPtr) != prevHit_.end()) continue;
 			enemy->OnDamage(player_->CalcAttackDamage(rightWeapon->GetDamage())
 				, player_->GetTransform().pos);
+			player_->AddUltGage(player_->CalcAttackDamage(rightWeapon->GetDamage()));
 		
 	}
 	// 次のフレームのために、今フレームの接触状態を「前フレームの履歴」として保存する
@@ -423,6 +424,8 @@ void GameScene::CollisionEnemyToPlayer(void)
 			// 「前フレームのリストに入っていなかった」場合のみダメージを与える
 			if (!isAnyEnemyHittingNow || prevAttackHit_) continue;
 			player_->OnDamage(enemy->CalcAttackDamage(), enemy->GetTransform().pos);
+
+			player_->AddUltGage(enemy->CalcAttackDamage());
 		
 	}
 	// 状態を更新

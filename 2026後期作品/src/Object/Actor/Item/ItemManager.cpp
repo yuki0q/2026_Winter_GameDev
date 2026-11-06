@@ -247,22 +247,44 @@ void ItemManager::DrawPickupPrompt(void) const
     // バッグがいっぱいで拾えない場合は、その旨を表示
     const bool isFull = pickableItem_->IsStorable() &&
         !bag_.CanAdd(pickableItem_->GetItemType());
-    const char* text = isFull ? "バッグがいっぱい" : "[F] 拾う";
 
-    int width = GetDrawStringWidth(text, static_cast<int>(std::strlen(text)));
-    int height = GetFontSize();
+    if (GetJoypadNum() == 0) {
+        const char* text = isFull ? "バッグがいっぱい" : "[F] 拾う";
 
-    int x = static_cast<int>(screenPos.x) - width / 2;
-    int y = static_cast<int>(screenPos.y) - height / 2;
+        int width = GetDrawStringWidth(text, static_cast<int>(std::strlen(text)));
+        int height = GetFontSize();
 
-    // 半透明の背景
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 160);
-    DrawBox(x - PROMPT_PADDING, y - PROMPT_PADDING / 2,
-        x + width + PROMPT_PADDING, y + height + PROMPT_PADDING / 2,
-        GetColor(0, 0, 0), TRUE);
-    SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+        int x = static_cast<int>(screenPos.x) - width / 2;
+        int y = static_cast<int>(screenPos.y) - height / 2;
 
-    DrawString(x, y, text, isFull ? GetColor(255, 120, 120) : GetColor(255, 255, 255));
+        // 半透明の背景
+        SetDrawBlendMode(DX_BLENDMODE_ALPHA, 160);
+        DrawBox(x - PROMPT_PADDING, y - PROMPT_PADDING / 2,
+            x + width + PROMPT_PADDING, y + height + PROMPT_PADDING / 2,
+            GetColor(0, 0, 0), TRUE);
+        SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+
+        DrawString(x, y, text, isFull ? GetColor(255, 120, 120) : GetColor(255, 255, 255));
+    }
+    else
+    {
+        const char* text = isFull ? "バッグがいっぱい" : "[X] 拾う";
+
+        int width = GetDrawStringWidth(text, static_cast<int>(std::strlen(text)));
+        int height = GetFontSize();
+
+        int x = static_cast<int>(screenPos.x) - width / 2;
+        int y = static_cast<int>(screenPos.y) - height / 2;
+
+        // 半透明の背景
+        SetDrawBlendMode(DX_BLENDMODE_ALPHA, 160);
+        DrawBox(x - PROMPT_PADDING, y - PROMPT_PADDING / 2,
+            x + width + PROMPT_PADDING, y + height + PROMPT_PADDING / 2,
+            GetColor(0, 0, 0), TRUE);
+        SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+
+        DrawString(x, y, text, isFull ? GetColor(255, 120, 120) : GetColor(255, 255, 255));
+    }
 }
 
 void ItemManager::UpdateBag(std::shared_ptr<Player> player)
@@ -433,8 +455,17 @@ void ItemManager::DrawBag(void) const
 
     // 操作説明
     SetFontSize(BAG_HINT_FONT_SIZE);
-    DrawString(px + BAG_ROW_MARGIN, py + BAG_PANEL_H - 34,
-        "W/S:選択   F/Space:使う   B/ESC:閉じる", GetColor(160, 160, 180));
+
+    if (GetJoypadNum() == 0)
+    {
+        DrawString(px + BAG_ROW_MARGIN, py + BAG_PANEL_H - 34,
+            "W/S:選択   F/Space:使う   B/ESC:閉じる", GetColor(160, 160, 180));
+    }
+    else
+    {
+        DrawString(px + BAG_ROW_MARGIN, py + BAG_PANEL_H - 34,
+            "上下:選択   B/X:使う   START:閉じる", GetColor(160, 160, 180));
+    }
 
     SetFontSize(prevFontSize);
 }

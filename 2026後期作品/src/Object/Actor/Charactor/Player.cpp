@@ -66,6 +66,8 @@ namespace
 		}
 		return ResourceManager::GetInstance().LoadModelDuplicate(src);
 	}
+
+	const int ULT_MAX = 100;
 }
 
 Player::Player(void)
@@ -83,7 +85,9 @@ Player::Player(void)
 	comboTimer_(0.0f),
 	lastAttackStep_(0),
 	isWarning_(false),
-	isSlash_(false)
+	isSlash_(false),
+	ultGage_(0),
+	maxUltGage_(ULT_MAX)
 {
 	// CSV‚©‚çƒpƒ‰ƒ[ƒ^‚ğæ“¾iInit()‚æ‚è‘O‚ÉŠm’è‚³‚¹‚éj
 	param_ = PlayerDataTable::GetParam();
@@ -125,6 +129,7 @@ void Player::OnDamage(int damage ,VECTOR attackedPos)
 		|| (currentState_ == STATE::AVOID)) return;
 
 	hp_ -= damage;
+
 	if (hp_ <= 0)
 	{
 		hp_ = 0;
@@ -145,6 +150,7 @@ void Player::InDamage(int damage)
 		|| (currentState_ == STATE::AVOID)) return;
 
 	hp_ -= damage;
+
 	if (hp_ <= 0)
 	{
 		hp_ = 0;
@@ -332,6 +338,7 @@ void Player::CreateSlash(void)
 	}
 
 	isSlash_ = false;
+	ultGage_ -= 100;
 }
 
 void Player::UpdateSlash(void)
@@ -508,26 +515,20 @@ VECTOR Player::GetInputDirection(bool& IsDash)
 	VECTOR dir = AsoUtility::VECTOR_ZERO;
 	IsDash = false;
 
-	if (GetJoypadNum() == 0)
-	{
-		if (ins.IsNew(KEY_INPUT_W)) { dir = AsoUtility::DIR_F; }
-		if (ins.IsNew(KEY_INPUT_A)) { dir = AsoUtility::DIR_L; }
-		if (ins.IsNew(KEY_INPUT_S)) { dir = AsoUtility::DIR_B; }
-		if (ins.IsNew(KEY_INPUT_D)) { dir = AsoUtility::DIR_R; }
+	if (ins.IsNew(KEY_INPUT_W)) { dir = AsoUtility::DIR_F; }
+	if (ins.IsNew(KEY_INPUT_A)) { dir = AsoUtility::DIR_L; }
+	if (ins.IsNew(KEY_INPUT_S)) { dir = AsoUtility::DIR_B; }
+	if (ins.IsNew(KEY_INPUT_D)) { dir = AsoUtility::DIR_R; }
 
-		if (ins.IsNew(KEY_INPUT_W) && ins.IsNew(KEY_INPUT_A)) { dir = AsoUtility::DIR_FL; }
-		if (ins.IsNew(KEY_INPUT_W) && ins.IsNew(KEY_INPUT_D)) { dir = AsoUtility::DIR_FR; }
-		if (ins.IsNew(KEY_INPUT_S) && ins.IsNew(KEY_INPUT_A)) { dir = AsoUtility::DIR_BL; }
-		if (ins.IsNew(KEY_INPUT_S) && ins.IsNew(KEY_INPUT_D)) { dir = AsoUtility::DIR_BR; }
+	if (ins.IsNew(KEY_INPUT_W) && ins.IsNew(KEY_INPUT_A)) { dir = AsoUtility::DIR_FL; }
+	if (ins.IsNew(KEY_INPUT_W) && ins.IsNew(KEY_INPUT_D)) { dir = AsoUtility::DIR_FR; }
+	if (ins.IsNew(KEY_INPUT_S) && ins.IsNew(KEY_INPUT_A)) { dir = AsoUtility::DIR_BL; }
+	if (ins.IsNew(KEY_INPUT_S) && ins.IsNew(KEY_INPUT_D)) { dir = AsoUtility::DIR_BR; }
 
-		if (ins.IsNew(KEY_INPUT_RETURN)) { transform_.pos = param_.startPos; }
-	}
-	else
-	{
-		InputManager::JOYPAD_IN_STATE padState = ins.GetJPadInputState(InputManager::JOYPAD_NO::PAD1);
-		dir = ins.GetDirectionXZAKey(padState.AKeyLX, padState.AKeyLY);
-
-	}
+	if (ins.IsNew(KEY_INPUT_RETURN)) { transform_.pos = param_.startPos; }
+	
+	InputManager::JOYPAD_IN_STATE padState = ins.GetJPadInputState(InputManager::JOYPAD_NO::PAD1);
+	dir = ins.GetDirectionXZAKey(padState.AKeyLX, padState.AKeyLY);
 
 	bool KeyDash = ins.IsActionNew(InputManager::ACTION::AVOID_DASH);
 
@@ -582,7 +583,7 @@ void Player::UpdateIdle(void)
 	}
 
 	// •KE‹Z
-	if (IsUlt)
+	if (IsUlt && ultGage_ >= 100)
 	{
 		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
@@ -632,7 +633,7 @@ void Player::UpdateWalk(void)
 		return;
 	}
 	// •KE‹Z
-	if (IsUlt)
+	if (IsUlt && ultGage_ >= 100)
 	{
 		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
@@ -683,7 +684,7 @@ void Player::UpdateRun(void)
 		return;
 	}
 
-	if (IsUlt)
+	if (IsUlt && ultGage_ >= 100)
 	{
 		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
@@ -730,7 +731,7 @@ void Player::UpdateAvoid(void)
 	}
 
 	// •KE‹Z
-	if (IsUlt)
+	if (IsUlt && ultGage_ >= 100)
 	{
 		ChangeState(STATE::PREV_ULT_ATTACK);
 		return;
@@ -807,7 +808,7 @@ void Player::UpdateAttack(void)
 	}
 
 	// •KE‹Z
-	if (IsUlt)
+	if (IsUlt && ultGage_ >= 100)
 	{
 		attackStep_ = 0;
 		hasComboInput_ = false;

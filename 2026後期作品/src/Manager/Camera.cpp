@@ -263,28 +263,23 @@ void Camera::ProcessRot(bool isLimit)
 	if (isZooming_) return;
 
 	auto& ins = InputManager::GetInstance();
-	if (GetJoypadNum() == 0)
+
+	// 左Altを押していない間はマウスが中央に固定
+	if (!ins.IsNew(KEY_INPUT_LALT) && !(sceMng_.GetSceneID() == SceneManager::SCENE_ID::PAUSE))
 	{
-		
-		// 左Altを押していない間はマウスが中央に固定
-		if (!ins.IsNew(KEY_INPUT_LALT) && !(sceMng_.GetSceneID() == SceneManager::SCENE_ID::PAUSE))
-		{
-			SetMouseDispFlag(FALSE);
-			RotMouse(isLimit);
+		SetMouseDispFlag(FALSE);
+		RotMouse(isLimit);
 			
-		}
-		else
-		{
-			SetMouseDispFlag(TRUE);
-			// 方向回転によるXYZの移動(キーボード)
-			RotKeyboard(isLimit);
-		}
 	}
 	else
 	{
-		// 方向回転によるXYZの移動(ゲームパッド)
-		RotGamePad(isLimit);
+		SetMouseDispFlag(TRUE);
+		// 方向回転によるXYZの移動(キーボード)
+		RotKeyboard(isLimit);
 	}
+
+	// 方向回転によるXYZの移動(ゲームパッド)
+	RotGamePad(isLimit);
 
 }
 

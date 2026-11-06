@@ -2,6 +2,7 @@
 #include "UIGame.h"
 #include "../Charactor/Player.h"
 #include "../Charactor/Enemy/EnemyManager.h"
+#include "../../../Manager/InputManager.h"
 
 UIGame::UIGame(std::shared_ptr<Player> player, std::shared_ptr<EnemyManager> enemyManager)
 	: 
@@ -35,6 +36,13 @@ void UIGame::Draw(void)
 	// 簡易的なHPゲージの描画例
 	DrawBox(30, 60, 30 + playerHp * 2, 80, 0x00ff00, TRUE);
 	DrawBox(30, 60, 30 + playerHpMax * 2, 80, 0xffffff, FALSE); // 枠線
+
+	int ultGage = player_->GetUltGage();
+	int ultGageMax = player_->GetUltMax();
+
+	// 簡易的なHPゲージの描画例
+	DrawBox(25, 80, 25 + ultGage * 2, 90, 0xffff00, TRUE);
+	DrawBox(25, 80, 25 + ultGageMax * 2, 90, 0xffffff, FALSE); // 枠線
 
 	// 敵の体力や数などを描画する場合
 	if (!enemyManager_)return;
@@ -79,6 +87,29 @@ void UIGame::Draw(void)
 	}
 
 	DrawFormatString(30, 100, 0xffffff, "残りの敵数 : %d", enemyCount);
+
+	auto& ins = InputManager::GetInstance();
+
+	if (GetJoypadNum() == 0)
+	{
+		DrawFormatString(900, 520, 0xffffff, "		ダッシュ : LShift");
+		DrawFormatString(900, 540, 0xffffff, "			攻撃 : 右クリック");
+		DrawFormatString(900, 560, 0xffffff, "		  パリィ : SPACE");
+		DrawFormatString(900, 580, 0xffffff, "アイテムの取得 : F");
+		DrawFormatString(900, 600, 0xffffff, "  メニュー画面 : ESC");
+		DrawFormatString(900, 620, 0xffffff, "  アイテム画面 : B");
+		DrawFormatString(900, 640, 0xffffff, "		　必殺技 : Q");
+	}
+	else
+	{
+		DrawFormatString(900, 520, 0xffffff, "		ダッシュ : RB");
+		DrawFormatString(900, 540, 0xffffff, "			攻撃 : Y");
+		DrawFormatString(900, 560, 0xffffff, "		  パリィ : B");
+		DrawFormatString(900, 580, 0xffffff, "アイテムの取得 : X");
+		DrawFormatString(900, 600, 0xffffff, "  メニュー画面 : START");
+		DrawFormatString(900, 620, 0xffffff, "  アイテム画面 : LB + X");
+		DrawFormatString(900, 640, 0xffffff, "		　必殺技 : LB + RB");
+	}
 }
 
 void UIGame::Release(void)

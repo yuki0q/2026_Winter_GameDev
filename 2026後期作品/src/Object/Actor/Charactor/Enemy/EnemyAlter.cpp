@@ -217,10 +217,6 @@ void EnemyAlter::UpdateDamage(void)
 void EnemyAlter::UpdateWalk(void)
 {
     VECTOR playerPos = player_->GetTransform().pos;
-   /* moveDir_ = VSub(playerPos, transform_.pos);
-    moveDir_.y = 0.0f;
-    transform_.rot = AsoUtility::VNormalize(moveDir_);
-    movePow_ = VScale(transform_.rot, 3.0f);*/
    
     // 視界内にプレイヤーが入ったかチェック
     if (SearchCircle(playerPos))

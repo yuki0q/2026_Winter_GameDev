@@ -50,6 +50,15 @@ void GameOverScene::Update(void)
 void GameOverScene::Draw(void)
 {
 	DrawFormatString(10, 10, 0xffffff, "ゲームオーバーシーン");
+
+	if (GetJoypadNum() == 0)
+	{
+		DrawFormatString(10, 500, 0xffffff, "SPACEでタイトルへ");
+	}
+	else
+	{
+		DrawFormatString(10, 500, 0xffffff, "Bでタイトルへ");
+	}
 }
 
 void GameOverScene::Release(void)

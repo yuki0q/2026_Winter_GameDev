@@ -90,6 +90,10 @@ public:
 	using FireSlashCallback = std::function<void(const VECTOR& pos, const VECTOR& dir)>;
 	void SetOnFireSlash(FireSlashCallback callback) { onFireSlash_ = std::move(callback); }
 
+	int GetUltMax(void)const { return maxUltGage_; }
+	int GetUltGage(void)const { return ultGage_; }
+	void AddUltGage(int ultGage) { ultGage_ += ultGage; }
+
 private:
 
 	static constexpr VECTOR PLAYER_DEFAULT_ROT_LOCAL = { 0.0f,180.0f * DX_PI_F / 180.0f,0.0f };
@@ -156,6 +160,9 @@ protected:
 	bool hasComboInput_;
 
 	bool isSlash_;
+
+	int ultGage_;
+	int maxUltGage_;
 
 	// ƒRƒ“ƒ{—P—\iUŒ‚‚ª“rØ‚ê‚Ä‚àAˆê’èŠÔ‚Í‘±‚«‚Ì’i‚©‚çÄŠJ‚Å‚«‚éj
 	// —P—\‚Ìc‚èŠÔi•bjB0 ‚È‚ç—P—\‚È‚µ

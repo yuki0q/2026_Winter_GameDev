@@ -80,8 +80,8 @@ void InputManager::Init(void)
 	// パリィ/シーン遷移 = SPACEキー または パッドの B/右ボタン
 	SetBinding(ACTION::PARRY, KEY_INPUT_SPACE, -1, JOYPAD_BTN::RIGHT);
 
-	// 回避/ダッシュ = LSHIFTキー または パッドの A/下ボタン
-	SetBinding(ACTION::AVOID_DASH, KEY_INPUT_LSHIFT, -1, JOYPAD_BTN::DOWN);
+	// 回避/ダッシュ = LSHIFTキー または パッドの RB/下ボタン
+	SetBinding(ACTION::AVOID_DASH, KEY_INPUT_LSHIFT, -1, JOYPAD_BTN::RB);
 
 	// アイテムを拾う = Fキー または パッドの X/左ボタン
 	SetBinding(ACTION::PICK_UP, KEY_INPUT_F, -1, JOYPAD_BTN::LEFT);
