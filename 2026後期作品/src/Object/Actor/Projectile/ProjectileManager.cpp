@@ -86,7 +86,8 @@ void ProjectileManager::CollisionToEnemies(
 
 		for (const auto& enemy : enemies)
 		{
-			if (!enemy || enemy->IsDead()) continue;
+			// oŒ»‘Ò‚¿i”ñƒAƒNƒeƒBƒuj‚Ì“G‚É‚Í“–‚Ä‚È‚¢iŒ©‚¦‚È‚¢“G‚É“–‚½‚Á‚ÄAaŒ‚‚ªÁ”ï‚³‚ê‚é‚Ì‚ğ–h‚®j
+			if (!enemy || enemy->IsDead() || !enemy->IsActive()) continue;
 
 			// €–S’†‚Ì“G‚É‚Í“–‚Ä‚È‚¢i€–Sƒ‚[ƒVƒ‡ƒ“‚Ì‚â‚è’¼‚µ‚ğ–h‚®j
 			EnemyBase::STATE state = enemy->GetCurrentState();

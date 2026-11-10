@@ -50,7 +50,7 @@ void UIGame::Draw(void)
 	int enemyCount = 0;
 	for (const auto& enemy : enemyManager_->GetEnemies())
 	{
-		if (!enemy || enemy->IsDead())continue;
+		if (!enemy || enemy->IsDead() || !enemy->IsActive())continue;
 			
 		enemyCount++;
 			

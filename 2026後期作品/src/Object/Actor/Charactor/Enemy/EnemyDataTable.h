@@ -39,6 +39,9 @@ struct EnemySpawnData
 {
 	std::string type;	// 「ALTER」など
 	VECTOR pos = { 0.0f, 0.0f, 0.0f };
+
+	// 出現条件（省略または START: ゲーム開始時 / AFTER_ALTER: ALTER をすべて倒した後 など）
+	std::string condition;
 };
 
 // 敵関連のCSVデータをまとめて管理する

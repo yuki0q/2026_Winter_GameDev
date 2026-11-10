@@ -78,6 +78,10 @@ public:
 
     STATE GetCurrentState() const { return currentState_; }
 
+    // 出現（アクティブ）状態の設定・取得
+    void SetActive(bool isActive) { isActive_ = isActive; }
+    bool IsActive(void) const { return isActive_; }
+
 protected:
 
     // CSV(enemy_param.csv)から読み込んだパラメータ
@@ -124,6 +128,9 @@ protected:
 
     // ステート遷移関数
     virtual void ChangeState(STATE newState) = 0;
+
+    // デフォルトは有効（最初から出す敵用）
+    bool isActive_ = true; 
 
     // 敵の攻撃用コライダ（例としてカプセルコライダ）
     std::unique_ptr<ColliderBase> attackCollider_;

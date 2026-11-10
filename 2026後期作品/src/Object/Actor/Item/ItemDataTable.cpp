@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <set>
 #include "../../../Manager/CsvLoader.h"
 #include "ItemDataTable.h"
 
@@ -9,6 +10,14 @@ namespace
 
     void LogWarning(const std::string& msg)
     {
+        // 同じ警告は1回だけ出力する
+        // （毎フレーム呼ばれる場所で表に無い項目を引いても、出力が溜まって重くならないようにする）
+        static std::set<std::string> logged;
+        if (!logged.insert(msg).second)
+        {
+            return;
+        }
+
         OutputDebugStringA((msg + "\n").c_str());
     }
 }

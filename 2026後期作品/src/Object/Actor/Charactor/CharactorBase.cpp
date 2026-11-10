@@ -70,6 +70,8 @@ void CharactorBase::Update(void)
 	UpdateKnockBack();
 
 	UpdateDebug();
+
+	FallDead();
 }
 
 void CharactorBase::Draw(void)
@@ -188,6 +190,11 @@ void CharactorBase::CollisionCapsule(void)
 		}
 
 	}
+}
+
+void CharactorBase::FallDead(void)
+{
+	if (transform_.pos.y <= -200)isDead_ = true;
 }
 
 void CharactorBase::KnockBack(const VECTOR& attackerPos, float power, float duration)

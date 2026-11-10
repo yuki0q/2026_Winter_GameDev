@@ -58,7 +58,7 @@ EnemyBase::~EnemyBase(void)
 
 void EnemyBase::Draw(void)
 {
-    if (isDead_) return;
+    if (isDead_ || !isActive_) return;
 
     CharactorBase::Draw();
 
@@ -84,7 +84,7 @@ void EnemyBase::Release(void)
 
 void EnemyBase::UpdateProcess(void)
 {
-    if (isDead_) return;
+    if (isDead_ || !isActive_) return;
 
 	movePow_ = AsoUtility::VECTOR_ZERO;
 	moveSpeed_ = 0.0f;
@@ -131,7 +131,7 @@ void EnemyBase::UpdateProcess(void)
 
 void EnemyBase::UpdateProcessPost(void)
 {
-    if (isDead_) return;
+    if (isDead_ || !isActive_) return;
 
     // アニメーション更新後に、武器をボーン(フレーム)の位置へ追従させる
     if (weaponManager_)
@@ -172,27 +172,6 @@ void EnemyBase::UpdateAttackCollider(void)
         capsuleCol->SetLocalPosTop(startPos);
         capsuleCol->SetLocalPosDown(endPos);
     }
-
-    //// キャラクターモデルの指定ボーン（フレーム）のワールド行列を取得
-    //MATRIX frameWorldMat = MV1GetFrameLocalWorldMatrix(transform_.modelId, attackStartFrameIndex_);
-
-    //// ボーンの位置と回転を、攻撃用コライダのTransform（あるいはコライダ自体）に反映させる
-    //// ※攻撃用コライダが持っている、あるいは紐づいている Transform を更新する
-    //if (attackCollider_)
-    //{
-    //    // コライダが参照しているTransformをボーンの位置・回転に合わせる
-    //    // （ColliderBaseは follow_ へのポインタを持っているため、そこに渡しているTransformを更新します）
-
-    //    // ※もし攻撃用コライダが独自の Transform を持っている場合は、そちらの pos / quaRot を更新します
-    //    // 例：
-    //    VECTOR bonePos = VGet(frameWorldMat.m[3][0], frameWorldMat.m[3][1], frameWorldMat.m[3][2]);
-    //    Quaternion boneRot = Quaternion::GetRotation(frameWorldMat);
-
-    //    // 例として、attackCollider_ が独自の Transform を持っている場合の更新イメージ
-    //     attackTransform_.pos = bonePos;
-    //     attackTransform_.quaRot = boneRot;
-    //     attackTransform_.Update();
-    //}
 }
 
 float EnemyBase::GetAttackDamageRate(void) const
@@ -217,7 +196,7 @@ int EnemyBase::CalcAttackDamage(void) const
 
 void EnemyBase::OnDamage(int damage, VECTOR attackedPos)
 {
-    if (isDead_ || (currentState_ == STATE::DAMAGE)) return;
+    if (isDead_ || !isActive_ || (currentState_ == STATE::DAMAGE)) return;
 
     hp_ -= damage;
     if (hp_ <= 0)
@@ -236,6 +215,8 @@ void EnemyBase::OnDamage(int damage, VECTOR attackedPos)
 
 void EnemyBase::DrawDebug(void)
 {
+    if (!isActive_) return;
+
     // 攻撃判定が有効な場合、攻撃用コライダのデバッグ描画を行う
     if (isAttackColliderEnable_ && attackCollider_)
     {

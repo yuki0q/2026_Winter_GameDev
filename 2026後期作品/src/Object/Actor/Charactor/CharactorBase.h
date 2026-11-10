@@ -113,6 +113,8 @@ protected:
 	void CollisionGravity(void);
 	void CollisionCapsule(void);
 
+	void FallDead(void);
+
 	void KnockBack(const VECTOR& attackerPos, float power, float duration);
 	void UpdateKnockBack(void);
 

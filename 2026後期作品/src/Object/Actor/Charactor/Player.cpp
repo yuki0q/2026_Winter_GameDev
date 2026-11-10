@@ -527,23 +527,25 @@ VECTOR Player::GetInputDirection(bool& IsDash)
 
 	if (ins.IsNew(KEY_INPUT_RETURN)) { transform_.pos = param_.startPos; }
 	
-	InputManager::JOYPAD_IN_STATE padState = ins.GetJPadInputState(InputManager::JOYPAD_NO::PAD1);
-	dir = ins.GetDirectionXZAKey(padState.AKeyLX, padState.AKeyLY);
+	if (GetJoypadNum() == 1) {
+		InputManager::JOYPAD_IN_STATE padState = ins.GetJPadInputState(InputManager::JOYPAD_NO::PAD1);
+		dir = ins.GetDirectionXZAKey(padState.AKeyLX, padState.AKeyLY);
 
-	bool KeyDash = ins.IsActionNew(InputManager::ACTION::AVOID_DASH);
-
-	// ダッシュ入力のリセット判定
-	if (!KeyDash)
-	{
-		// キーが一度でも離されたらダッシュ入力を再度有効化
-		isDashEnable_ = true;
 	}
+		bool KeyDash = ins.IsActionNew(InputManager::ACTION::AVOID_DASH);
 
-	// フラグが true の場合のみダッシュ判定を有効にする
-	if (isDashEnable_ && KeyDash)
-	{
-		IsDash = true;
-	}
+		// ダッシュ入力のリセット判定
+		if (!KeyDash)
+		{
+			// キーが一度でも離されたらダッシュ入力を再度有効化
+			isDashEnable_ = true;
+		}
+
+		// フラグが true の場合のみダッシュ判定を有効にする
+		if (isDashEnable_ && KeyDash)
+		{
+			IsDash = true;
+		}
 
 	return dir;
 }

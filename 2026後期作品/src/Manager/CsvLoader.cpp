@@ -1,3 +1,6 @@
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include "CsvLoader.h"
@@ -79,26 +82,45 @@ CsvLoader::Row CsvLoader::Split(const std::string& line)
 
 int CsvLoader::ToInt(const std::string& str, int defaultValue)
 {
-	try
-	{
-		return std::stoi(str);
-	}
-	catch (...)
+	// std::stoi は変換できない時に例外を投げる（デバッガ接続中は1回ごとに大きなコストがかかる）ため、
+	// 例外を使わない strtol で変換する
+	if (str.empty())
 	{
 		return defaultValue;
 	}
+
+	char* end = nullptr;
+	errno = 0;
+	long value = std::strtol(str.c_str(), &end, 10);
+
+	// 1文字も数値として読めなかった、または範囲外の場合は既定値
+	if (end == str.c_str() || errno == ERANGE ||
+		value < INT_MIN || value > INT_MAX)
+	{
+		return defaultValue;
+	}
+
+	return static_cast<int>(value);
 }
 
 float CsvLoader::ToFloat(const std::string& str, float defaultValue)
 {
-	try
-	{
-		return std::stof(str);
-	}
-	catch (...)
+	// ToInt と同じ理由で、例外を使わない strtof で変換する
+	if (str.empty())
 	{
 		return defaultValue;
 	}
+
+	char* end = nullptr;
+	errno = 0;
+	float value = std::strtof(str.c_str(), &end);
+
+	if (end == str.c_str() || errno == ERANGE)
+	{
+		return defaultValue;
+	}
+
+	return value;
 }
 
 std::string CsvLoader::Trim(const std::string& str)

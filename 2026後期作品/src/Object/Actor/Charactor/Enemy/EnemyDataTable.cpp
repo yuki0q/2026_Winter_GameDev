@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <set>
 #include "../../../../Manager/CsvLoader.h"
 #include "EnemyDataTable.h"
 
@@ -9,6 +10,14 @@ namespace
 
 	void LogWarning(const std::string& msg)
 	{
+		// 同じ警告は1回だけ出力する
+		// （毎フレーム呼ばれる場所で表に無い項目を引いても、出力が溜まって重くならないようにする）
+		static std::set<std::string> logged;
+		if (!logged.insert(msg).second)
+		{
+			return;
+		}
+
 		OutputDebugStringA((msg + "\n").c_str());
 	}
 }
@@ -173,7 +182,7 @@ void EnemyDataTable::LoadAnim(void)
 void EnemyDataTable::LoadSpawn(void)
 {
 
-	// type,x,y,z
+	// type,x,y,z,condition(conditionは省略可能)
 	auto rows = CsvLoader::Load(PATH_CSV + "EnemySpawn.csv");
 	if (rows.empty())
 	{
@@ -193,6 +202,12 @@ void EnemyDataTable::LoadSpawn(void)
 			CsvLoader::ToFloat(r[1]),
 			CsvLoader::ToFloat(r[2]),
 			CsvLoader::ToFloat(r[3]));
+
+		// 出現条件（5列目。省略可）
+		if (r.size() >= 5)
+		{
+			s.condition = r[4];
+		}
 
 		spawns_.push_back(s);
 	}

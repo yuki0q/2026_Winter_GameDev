@@ -83,6 +83,14 @@ void GameScene::Init(void)
 			itemManager_->DropFromEnemy(EnemyBase::TypeToName(type), pos);
 		});
 
+	// 条件を満たして途中から出現する敵（Ogre など）を、プレイヤーの衝突対象にも登録する
+	enemyManager_->SetOnEnemyAppear(
+		[this](const std::shared_ptr<EnemyBase>& enemy)
+		{
+			player_->AddHitCollider(enemy->GetOwnCollider(
+				static_cast<int>(CharactorBase::COLLIDER_TYPE::CAPSULE)));
+		});
+
 	hasEnemy_ = !enemyManager_->GetEnemies().empty();
 	isGoldSpawned_ = false;
 
@@ -370,7 +378,7 @@ void GameScene::CollisionWeaponToEnemy(void)
 
 	for (auto& enemy : enemyManager_->GetEnemies())
 	{
-		if (!enemy || enemy->IsDead())continue;
+		if (!enemy || enemy->IsDead() || !enemy->IsActive())continue;
 		
 			// 敵のポインタをキーとして、今回の攻撃ですでにヒットしているかチェック
 			const void* enemyPtr = static_cast<const void*>(enemy.get());
@@ -405,7 +413,7 @@ void GameScene::CollisionEnemyToPlayer(void)
 
 	for (auto& enemy : enemyManager_->GetEnemies())
 	{
-		if (!enemy || enemy->IsDead() || !enemy->IsAttackColliderEnable())continue;
+		if (!enemy || enemy->IsDead() || !enemy->IsActive() || !enemy->IsAttackColliderEnable())continue;
 		
 			const ColliderBase* enemyAttackCol = enemy->GetAttackCollider();
 			if (!enemyAttackCol) continue;
@@ -445,7 +453,7 @@ void GameScene::CollisionPlayerAndEnemy(void)
 
 	for (auto& enemy : enemyManager_->GetEnemies())
 	{
-		if (!enemy || enemy->IsDead()) continue;
+		if (!enemy || enemy->IsDead() || !enemy->IsActive()) continue;
 
 		// 敵のカプセルコライダを取得
 		const ColliderCapsule* enemyCapsule = dynamic_cast<const ColliderCapsule*>(
@@ -504,7 +512,7 @@ void GameScene::CollisionEnemyAndEnemy(void)
 	for (size_t i = 0; i < size; ++i)
 	{
 		auto& enemyA = enemies[i];
-		if (!enemyA || enemyA->IsDead()) continue;
+		if (!enemyA || enemyA->IsDead() || !enemyA->IsActive()) continue;
 
 		const ColliderCapsule* capsuleA = dynamic_cast<const ColliderCapsule*>(
 			enemyA->GetOwnCollider(static_cast<int>(CharactorBase::COLLIDER_TYPE::CAPSULE))
@@ -514,7 +522,7 @@ void GameScene::CollisionEnemyAndEnemy(void)
 		for (size_t j = i + 1; j < size; ++j)
 		{
 			auto& enemyB = enemies[j];
-			if (!enemyB || enemyB->IsDead()) continue;
+			if (!enemyB || enemyB->IsDead() || !enemyB->IsActive()) continue;
 
 			const ColliderCapsule* capsuleB = dynamic_cast<const ColliderCapsule*>(
 				enemyB->GetOwnCollider(static_cast<int>(CharactorBase::COLLIDER_TYPE::CAPSULE))
@@ -576,7 +584,7 @@ void GameScene::CollisionParry(void)
 	for (auto& enemy : enemyManager_->GetEnemies())
 	{
 		// 敵の攻撃判定があるのかを判定
-		if (!enemy || enemy->IsDead() || !enemy->IsAttackColliderEnable()) continue;
+		if (!enemy || enemy->IsDead() || !enemy->IsActive() || !enemy->IsAttackColliderEnable()) continue;
 
 			const ColliderBase* enemyAttackCol = enemy->GetAttackCollider();
 			if (!enemyAttackCol) continue;
@@ -646,7 +654,7 @@ std::shared_ptr<EnemyBase> GameScene::GetNearestEnemy(float maxDistance)
 
 	for (auto& enemy : enemyManager_->GetEnemies())
 	{
-		if (!enemy || enemy->IsDead()) continue;
+		if (!enemy || enemy->IsDead() || !enemy->IsActive()) continue;
 
 		VECTOR diff = VSub(enemy->GetTransform().pos, playerPos);
 		diff.y = 0.0f;
