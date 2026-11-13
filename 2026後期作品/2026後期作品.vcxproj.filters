@@ -389,6 +389,9 @@
     <ClInclude Include="src\Object\Actor\Projectile\ProjectileManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="src\Common\FrameLimiter.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Shader\PostEffect\CameraShake.hlsl" />

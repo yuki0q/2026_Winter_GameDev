@@ -24,7 +24,7 @@ namespace
 		switch (type)
 		{
 		case WEAPON_TYPE::SWORD:
-			outSrc = ResourceManager::SRC::MDL_SWORD;
+			outSrc = ResourceManager::SRC::MDL_SWORD;	// MDL_GREAT_SWORD
 			return true;
 		case WEAPON_TYPE::SHIELD:
 			outSrc = ResourceManager::SRC::MDL_SHIELD;
@@ -457,6 +457,19 @@ void Player::ChangeState(STATE state)
 	case STATE::PARRY:
 		animController_->Play(static_cast<int>(ANIM_TYPE::PARRY), false);
 		isDashEnable_ = false;
+		{
+			Camera* camera = scnMng_.GetCamera();
+			if (camera)
+			{
+				// プレイヤーの現在地から少し前方の座標をズーム中心にする
+				VECTOR forward = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
+				VECTOR zoomPoint1 = transform_.pos;
+				VECTOR zoomPoint2 = VAdd(transform_.pos, VScale(forward, 150.0f)); // 前方150の地点
+
+				// 演出時間（例: 1.5秒間ズーム）
+				camera->TriggerZoomIn(zoomPoint1, zoomPoint2, 1.0f);
+			}
+		}
 		break;
 	case STATE::PARRYED:
 		animController_->Play(static_cast<int>(ANIM_TYPE::PARRYED), false);
@@ -763,7 +776,7 @@ void Player::UpdateAttack(void)
 	// 攻撃中は武器の当たり判定を有効化
 	weaponManager_->SetAttackEnable(WEAPON_SLOT::RIGHT_HAND, true);
 
-	if (attackStep_ == 0 || attackStep_ == 4)
+	if (attackStep_ == 0)
 	{
 		VECTOR forward = Quaternion::PosAxis(transform_.quaRot, AsoUtility::DIR_F);
 		VECTOR attackMove = VScale(forward, style_.attackMove);

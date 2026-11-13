@@ -3,6 +3,8 @@
 #include "../../../Common/Transform.h"
 #include "EnemyDataTable.h"
 #include <memory>
+#include <functional>
+#include <utility>
 
 class Player;
 class ColliderCapsule;
@@ -48,6 +50,12 @@ public:
 
     // プレイヤーの参照をセットする関数
     void SetPlayer(std::shared_ptr<Player> player) { player_ = player; }
+
+    // 魔法などの飛び道具を発射する時に呼ばれる処理を登録する
+    // （pos: 発射位置, dir: 発射方向, damage: ダメージ量, param: 飛び道具のパラメータ）
+    /*using FireMagicCallback = std::function<void(const VECTOR& pos, const VECTOR& dir,
+        int damage, const EnemyMagicParam& param)>;
+    void SetOnFireMagic(FireMagicCallback callback) { onFireMagic_ = std::move(callback); }*/
 
     const ENEMY_TYPE& GetEnemyType(void) const { return enemyType_; }
 
@@ -156,6 +164,9 @@ protected:
     STATE currentState_;
 
     std::shared_ptr<Player> player_;
+
+    // 魔法を発射する時の通知先（GameScene などが EnemyManager 経由で登録する）
+   // FireMagicCallback onFireMagic_;
 
     // 首振り用のタイマー
     float searchAngleTimer_;

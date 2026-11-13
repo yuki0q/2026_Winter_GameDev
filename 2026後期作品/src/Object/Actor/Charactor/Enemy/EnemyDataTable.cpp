@@ -29,11 +29,13 @@ void EnemyDataTable::Load(void)
 	anims_.clear();
 	spawns_.clear();
 	attackRates_.clear();
+	magics_.clear();
 
 	LoadParam();
 	LoadAnim();
 	LoadSpawn();
 	LoadAttack();
+	LoadMagic();
 
 	isLoaded_ = true;
 }
@@ -75,6 +77,22 @@ const std::vector<EnemySpawnData>& EnemyDataTable::GetSpawns(void)
 {
 	EnsureLoaded();
 	return spawns_;
+}
+
+EnemyMagicParam EnemyDataTable::GetMagicParam(const std::string& type)
+{
+
+	EnsureLoaded();
+
+	auto it = magics_.find(type);
+	if (it == magics_.end())
+	{
+		LogWarning("[EnemyDataTable] EnemyMagic.csv に " + type + " がありません。初期値を使用します");
+		return EnemyMagicParam{};
+	}
+
+	return it->second;
+
 }
 
 float EnemyDataTable::GetAttackRate(const std::string& type, const std::string& motion)
@@ -232,6 +250,41 @@ void EnemyDataTable::LoadAttack(void)
 		}
 
 		attackRates_[r[0]][r[1]] = CsvLoader::ToFloat(r[2], 1.0f);
+	}
+
+}
+
+void EnemyDataTable::LoadMagic(void)
+{
+
+	// type,damage,speed,range,radius,castHeight,castOffset,castInterval,retreatDistance
+	const size_t COLUMN_NUM = 9;
+
+	auto rows = CsvLoader::Load(PATH_CSV + "EnemyMagic.csv");
+	if (rows.empty())
+	{
+		LogWarning("[EnemyDataTable] EnemyMagic.csv を読み込めませんでした。魔法は初期値になります");
+	}
+
+	for (const auto& r : rows)
+	{
+		if (r.size() < COLUMN_NUM)
+		{
+			LogWarning("[EnemyDataTable] EnemyMagic.csv の列数が足りない行があります: " + r[0]);
+			continue;
+		}
+
+		EnemyMagicParam p;
+		p.damage = CsvLoader::ToInt(r[1], p.damage);
+		p.speed = CsvLoader::ToFloat(r[2], p.speed);
+		p.range = CsvLoader::ToFloat(r[3], p.range);
+		p.radius = CsvLoader::ToFloat(r[4], p.radius);
+		p.castHeight = CsvLoader::ToFloat(r[5], p.castHeight);
+		p.castOffset = CsvLoader::ToFloat(r[6], p.castOffset);
+		p.castInterval = CsvLoader::ToFloat(r[7], p.castInterval);
+		p.retreatDistance = CsvLoader::ToFloat(r[8], p.retreatDistance);
+
+		magics_[r[0]] = p;
 	}
 
 }

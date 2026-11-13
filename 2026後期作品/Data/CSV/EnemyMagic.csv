@@ -1,0 +1,6 @@
+﻿# 魔法（飛び道具）を撃つ敵のパラメータ
+# speed: 秒速  range: 飛距離  radius: 当たり判定の半径  castHeight/castOffset: 発射位置の高さ/前方へのずれ
+# castInterval: 次に撃てるまでの秒数  retreatDistance: プレイヤーがこの距離より近づくと距離を取る
+# ※魔法を撃つ射程は EnemyParam.csv の attackRadius、探知距離は searchRadius
+type,damage,speed,range,radius,castHeight,castOffset,castInterval,retreatDistance
+WIZARD,12,900,2000,30,120,60,3.0,350

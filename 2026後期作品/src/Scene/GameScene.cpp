@@ -28,6 +28,9 @@ namespace
 
 	const int   HITSTOP_FRAME = 10;
 	const float SHAKE_POWER_MAX = 0.008f;	// 画面幅の約0.8%
+
+	// プレイヤーを中心とした範囲の広さ
+	const float SHADOWMAP_RANGE = 800.0f;
 }
 
 GameScene::GameScene(void)
@@ -58,7 +61,7 @@ void GameScene::Init(void)
 {
 	EffekseerEffect::GetInstance()->CreateInstance();
 	EffekseerEffect::GetInstance()->Init();
-	
+
 	player_ = std::make_shared<Player>();
 	player_->Init();
 
@@ -129,12 +132,9 @@ void GameScene::Init(void)
 	camera->AddHitCollider(stageCollider);
 
 	// シャドウマップハンドルの作成
-	shadowMapHandle_ = MakeShadowMap(2048, 2048);
+	shadowMapHandle_ = MakeShadowMap(1024, 1024);
+	SetShadowMapLightDirection(shadowMapHandle_, SceneManager::LIGHT_DIRECTION);
 
-	// シャドウマップが想定するライトの方向もセット
-	SetShadowMapLightDirection(shadowMapHandle_, VGet(0.5f, -0.5f, 0.5f));
-
-	// シャドウマップに描画する範囲を設定
 	SetShadowMapDrawArea(shadowMapHandle_, VGet(-5000.0f, -70.0f, -6000.0f), 
 		VGet(6000.0f, 1500.0f, 8000.0f));
 
@@ -253,6 +253,16 @@ void GameScene::Draw(void)
 {
 	// デバッグ用
 	DrawFormatString(10, 10, 0xffffff, "ゲームシーン");
+	
+	if (player_)
+	{
+		VECTOR playerPos = player_->GetTransform().pos;
+
+		VECTOR minPos = VGet(playerPos.x - SHADOWMAP_RANGE, playerPos.y - 200.0f, playerPos.z - SHADOWMAP_RANGE);
+		VECTOR maxPos = VGet(playerPos.x + SHADOWMAP_RANGE, playerPos.y + 1000.0f, playerPos.z + SHADOWMAP_RANGE);
+
+		SetShadowMapDrawArea(shadowMapHandle_, minPos, maxPos);
+	}
 
 	// シャドウマップへの描画の準備
 	ShadowMap_DrawSetup(shadowMapHandle_);
@@ -260,7 +270,6 @@ void GameScene::Draw(void)
 	stage_->Draw();
 	player_->Draw();
 	enemyManager_->Draw();
-	projectileManager_->Draw();
 	itemManager_->Draw();
 
 	// シャドウマップへの描画を終了
@@ -302,6 +311,7 @@ void GameScene::Draw(void)
 	{
 		itemManager_->DrawBag();
 	}
+	TestDrawShadowMap(shadowMapHandle_, 0, 0, 300, 300);
 }
 
 void GameScene::Release(void)

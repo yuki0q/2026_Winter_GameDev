@@ -5,7 +5,7 @@
 #include "Manager/SceneManager.h"
 #include "Manager/SoundManager.h"
 #include "Effect/EffekseerEffect.h"
-#include "Common/FpsController.h"
+#include "Common/FrameLimiter.h"
 #include "Application.h"
 
 Application* Application::instance_ = nullptr;
@@ -43,7 +43,11 @@ void Application::Init(void)
 	ChangeWindowMode(true);
 
 	// FPS制御初期化
-	fpsController_ = new FpsController(FRAME_RATE);
+	frameLimiter_ = new FrameLimiter(FRAME_RATE);
+
+	// フレームレートは FrameLimiter で制御するので、垂直同期による待ちは使わない
+	// （二重に待つと、リフレッシュレートが高いモニターでは、カクつきや無駄な待ちが出る）
+	SetWaitVSyncFlag(FALSE);
 
 	// DxLibの初期化
 	SetUseDirect3DVersion(DX_DIRECT3D_11);
@@ -101,13 +105,13 @@ void Application::Run(void)
 
 #ifdef _DEBUG
 		// 平均FPS描画
-		fpsController_->Draw();
+		DrawFormatString(SCREEN_SIZE_X - 140, 10, 0xffffff, "FPS: %.1f", frameLimiter_->GetFps());
 #endif // _DEBUG
 
 		ScreenFlip();
 
-		// 理想FPS経過待ち
-		fpsController_->Wait();
+		// 理想FPS経過待ち（待っている間は Sleep で寝て、CPUを使わない）
+		frameLimiter_->Wait();
 	}
 
 }
@@ -115,7 +119,7 @@ void Application::Run(void)
 void Application::Destroy(void)
 {
 	// FPS制御メモリ解放
-	delete fpsController_;
+	delete frameLimiter_;
 
 	InputManager::GetInstance().Destroy();
 	ResourceManager::GetInstance().Destroy();
@@ -153,7 +157,7 @@ Application::Application(void)
 	:
 	isInitFail_(false),
 	isReleaseFail_(false),
-	fpsController_(nullptr)
+	frameLimiter_(nullptr)
 {
 }
 

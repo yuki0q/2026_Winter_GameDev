@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-class FpsController;
+class FrameLimiter;
 
 class Application
 {
@@ -69,7 +69,7 @@ private:
 	static Application* instance_;
 
 	// FPSêßå‰
-	FpsController* fpsController_;
+	FrameLimiter* frameLimiter_;
 
 	// èâä˙âªé∏îs
 	bool isInitFail_;

@@ -83,6 +83,7 @@
     <ClCompile Include="src\Object\Actor\UI\UIGame.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Common\FrameLimiter.h" />
     <ClInclude Include="src\Manager\ProjectileManager.h" />
     <ClInclude Include="src\Object\Actor\Item\ItemDataTable.h" />
     <ClInclude Include="src\Object\Actor\Item\ItemJewel.h" />

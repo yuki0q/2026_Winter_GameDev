@@ -72,6 +72,14 @@ public:
 	// 現在パリィ中（パリィステート）かどうかを返す
 	bool IsParry(void) const { return currentState_ == STATE::PARRY; }
 
+	// ダメージを受け付けない状態か（回避中・被ダメージ中・パリィ攻撃中・死亡）
+	// 敵の飛び道具が、当たらずにすり抜けるかの判定に使う（OnDamage の無視条件と同じ）
+	bool IsInvincible(void) const
+	{
+		return hp_ <= 0 || currentState_ == STATE::DAMAGE ||
+			currentState_ == STATE::PARRYATTACK || currentState_ == STATE::AVOID;
+	}
+
 	void ClearParry(void);
 
 	// 指定した座標のほうを向く関数

@@ -43,7 +43,7 @@ public:
 	static constexpr float LIMIT_X_DW_RAD = 10.0f * (DX_PI_F / 180.0f);
 
 	// マウス感度
-	static constexpr float MOUSE_SENSITIVITY = 0.003f;
+	static constexpr float MOUSE_SENSITIVITY = 0.0015f;
 
 	// ズーム制限とスピードの定数を追加
 	// 最も近づいたときの距離
