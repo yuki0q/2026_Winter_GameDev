@@ -10,6 +10,7 @@
 #include "../../Collider/ColliderCapsule.h"
 #include "../Weapon/WeaponManager.h"
 #include "../Weapon/WeaponSword.h"
+#include "../Weapon/WeaponGreatSword.h"
 #include "../Weapon/WeaponShield.h"
 #include <map>
 #include <string>
@@ -24,10 +25,13 @@ namespace
 		switch (type)
 		{
 		case WEAPON_TYPE::SWORD:
-			outSrc = ResourceManager::SRC::MDL_SWORD;	// MDL_GREAT_SWORD
+			outSrc = ResourceManager::SRC::MDL_SWORD;
 			return true;
 		case WEAPON_TYPE::SHIELD:
 			outSrc = ResourceManager::SRC::MDL_SHIELD;
+			return true;
+		case WEAPON_TYPE::GREAT_SWORD:
+			outSrc = ResourceManager::SRC::MDL_GREAT_SWORD;
 			return true;
 		default:
 			return false;
@@ -43,6 +47,8 @@ namespace
 			return std::make_shared<WeaponSword>();
 		case WEAPON_TYPE::SHIELD:
 			return std::make_shared<WeaponShield>();
+		case WEAPON_TYPE::GREAT_SWORD:
+			return std::make_shared<WeaponGreatSword>();
 		default:
 			return nullptr;
 		}
@@ -496,6 +502,8 @@ void Player::ChangeState(STATE state)
 
 				// 演出時間（例: 1.5秒間ズーム）
 				camera->TriggerZoomIn(zoomPoint1, zoomPoint2, 1.0f);
+
+				camera->StartEventShot(Camera::EVENT_SHOT::FRONT);
 			}
 		}
 		break;

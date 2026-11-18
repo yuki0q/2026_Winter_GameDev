@@ -2,6 +2,7 @@
 #include "EnemyManager.h"
 #include "EnemyAlter.h"
 #include "EnemyOgre.h" 
+#include "EnemyWizard.h" 
 
 EnemyManager::EnemyManager(void)
 {
@@ -88,6 +89,20 @@ void EnemyManager::AddHitCollider(const ColliderBase* hitCollider)
         if (enemy)
         {
             enemy->AddHitCollider(hitCollider);
+        }
+    }
+}
+
+void EnemyManager::SetOnEnemyFireMagic(EnemyBase::FireMagicCallback callback)
+{
+    onFireMagic_ = std::move(callback);
+
+    // すでに出現している敵（出現待ちを含む）にも設定する
+    for (auto& enemy : enemies_)
+    {
+        if (enemy)
+        {
+            enemy->SetOnFireMagic(onFireMagic_);
         }
     }
 }
@@ -185,6 +200,13 @@ std::shared_ptr<EnemyBase> EnemyManager::SpawnEnemy(EnemyBase::ENEMY_TYPE type,
         newEnemy = ogre;
         break;
     }
+    case EnemyBase::ENEMY_TYPE::WIZARD:
+    {
+        auto wizard = std::make_shared<EnemyWizard>();
+        wizard->SetPlayer(player);
+        newEnemy = wizard;
+        break;
+    }
     default:
         break;
     }
@@ -192,6 +214,8 @@ std::shared_ptr<EnemyBase> EnemyManager::SpawnEnemy(EnemyBase::ENEMY_TYPE type,
     if (newEnemy)
     {
         newEnemy->SetPosition(spawnPos);
+        // 魔法の発射通知先（魔法を撃たない敵では使われない）
+        newEnemy->SetOnFireMagic(onFireMagic_);
         // リソース・コライダ等の初期化実行
         newEnemy->Init();
         // アクティブ状態を設定

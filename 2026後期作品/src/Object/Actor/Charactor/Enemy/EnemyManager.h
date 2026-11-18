@@ -42,6 +42,10 @@ public:
     using AppearCallback = std::function<void(const std::shared_ptr<EnemyBase>&)>;
     void SetOnEnemyAppear(AppearCallback callback) { onEnemyAppear_ = std::move(callback); }
 
+    // 魔法を撃つ敵が、発射する時に呼ばれる処理
+    // （すでに出現している敵と、これから出現する敵の両方に設定される）
+    void SetOnEnemyFireMagic(EnemyBase::FireMagicCallback callback);
+
     // 出現条件待ちの敵がまだ残っているか
     bool HasPendingSpawn(void) const { return !pendingSpawns_.empty(); }
 
@@ -54,6 +58,9 @@ private:
 
     // 条件付きで出現した敵の通知先
     AppearCallback onEnemyAppear_;
+
+    // 魔法を発射する時の通知先（生成した敵にも設定する）
+    EnemyBase::FireMagicCallback onFireMagic_;
 
     // 出現条件待ちの敵（waitType の敵がすべて倒されたら、type の敵が pos に出現する）
     struct PendingSpawn

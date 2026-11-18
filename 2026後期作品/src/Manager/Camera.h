@@ -114,6 +114,41 @@ public:
 	// ズーム演出を開始させる関数
 	void TriggerZoomIn(const VECTOR& zoomPoint1, const VECTOR& zoomPoint2, float duration);
 
+	// イベントカメラの種類
+	// 位置・向き・距離・時間は CameraShot.csv で調整する（無ければ既定値）
+	enum class EVENT_SHOT
+	{
+		FRONT,	// プレイヤーの正面を映す（必殺技の準備など。EndFrontView を呼ぶまで続く）
+		PARRY,	// パリィ成功：プレイヤーの横から寄って、受け止めた瞬間を映す
+		SLASH,	// 斬撃を飛ばした：プレイヤーの横から、飛んでいく斬撃を映す
+	};
+
+	// イベントカメラが、元の向きへ戻る時の回り方（上から見た向き）
+	// RIGHT は右回り（時計回り）：カメラが プレイヤーの 後ろ → 左 → 正面 → 右 の順に周る
+	// LEFT  は左回り（反時計回り）：カメラが プレイヤーの 後ろ → 右 → 正面 → 左 の順に周る
+	enum class RETURN_DIR
+	{
+		DEFAULT,	// CameraShot.csv の returnDir 列に従う
+		SHORTEST,	// 戻り先までの近いほうの回り方
+		RIGHT,		// 右回り
+		LEFT,		// 左回り
+	};
+
+	// イベントカメラを開始する
+	// ・開始前のカメラの向き・距離を覚えておき、演出が終わると滑らかに戻る
+	// ・演出中は、プレイヤーの操作によるカメラの回転・ズームを受け付けない
+	// ・演出の途中で別の演出が始まった場合は、新しい演出に切り替わる（戻り先は最初の向きのまま）
+	// ・EndFrontView を呼ぶまで続く演出（FRONT）の間は、他の演出で上書きされない
+	void StartEventShot(EVENT_SHOT shot, RETURN_DIR returnDir = RETURN_DIR::DEFAULT);
+
+	// 必殺技の準備用：プレイヤーの正面を映す演出（FRONT）の開始・終了
+	void StartFrontView(void);
+	void EndFrontView(void);
+
+	// イベントカメラの演出中か（映している間と、元の向きへ戻している間）
+	bool IsEventShotActive(void) const { return eventMode_ != EVENT_MODE::NONE; }
+	bool IsFrontViewActive(void) const { return IsEventShotActive(); }
+
 protected:
 
 	// リソースロード
@@ -182,6 +217,57 @@ private:
 
 	// 現在のカメラ追従距離（Z軸オフセット）
 	float followDist_;
+
+	// イベントカメラの段階
+	enum class EVENT_MODE
+	{
+		NONE,		// 演出なし（通常のカメラ操作）
+		SHOT,		// 演出のカメラへ寄せている（時間で終わる演出は、経過すると RETURNING へ）
+		RETURNING,	// 演出前の向きへ戻している
+	};
+	EVENT_MODE eventMode_ = EVENT_MODE::NONE;
+
+	// 1つの演出（ショット）の内容。カメラの向きは、開始時のプレイヤーの向きを基準にした相対値
+	struct EventShot
+	{
+		float yaw;		// 横方向の回り込み量(rad)。0 でプレイヤーの真後ろ、π で真正面、正でプレイヤーの左側へ
+		float pitch;	// 上下の角度(rad)。正で見下ろす
+		float dist;		// プレイヤーからカメラまでの距離
+		float hold;		// 映し続ける時間(秒)。負の値は EndFrontView を呼ぶまで続く
+		float blendIn;	// 演出のカメラへ寄せる速さ（1フレームごとの補間率）
+		float blendOut;	// 元の向きへ戻す速さ（同上）
+		RETURN_DIR returnDir;	// 元の向きへ戻る時の回り方（DEFAULT 以外）
+	};
+
+	// 演出（ショット）の内容を取得（CameraShot.csv。無ければ既定値）
+	static EventShot GetShot(EVENT_SHOT shot);
+
+	// 今の演出と、その開始時のプレイヤーの向き(rad)・経過時間
+	EventShot currentShot_ = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	float shotBaseYaw_ = 0.0f;
+	float shotTimer_ = 0.0f;
+
+	// 戻る時の回り方（DEFAULT 以外に解決済みの値）と、戻る時のY角度の目標
+	// （回り方を守るため、戻り始めに「何周分も含めた」目標の角度を決めて、そこへ向かう）
+	RETURN_DIR returnDir_ = RETURN_DIR::SHORTEST;
+	float returnTargetY_ = 0.0f;
+
+	// 演出開始時のカメラ角度・追従距離（演出後に戻す先）
+	VECTOR savedAngles_ = { 0.0f, 0.0f, 0.0f };
+	float savedFollowDist_ = DEFAULT_FOLLOW_DIST;
+
+	// 戻りきったと見なす誤差
+	static constexpr float EVENT_END_EPSILON_RAD = 0.01f;
+	static constexpr float EVENT_END_EPSILON_DIST = 1.0f;
+
+	// 元の向きへ戻る段階に移る（回り方に従って、戻る時のY角度の目標を決める）
+	void BeginReturn(void);
+
+	// 演出中のカメラ更新
+	void UpdateEvent(void);
+
+	// マウスの移動量を捨てる（画面中央へ戻す）
+	void DiscardMouseMove(void);
 
 	// ズーム操作関数
 	void ProcessZoom(void);

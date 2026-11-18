@@ -13,7 +13,7 @@ enum class WEAPON_TYPE
     SWORD,
     SHIELD,
     GREAT_SWORD,
-    AXE
+    AXE,
 };
 
 // •ŠíŽí•Ê <-> CSVã‚Ì–¼‘O

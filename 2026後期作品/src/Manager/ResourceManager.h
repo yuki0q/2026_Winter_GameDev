@@ -18,6 +18,7 @@ public:
 		MDL_AXE,
 		MDL_ALTER,
 		MDL_OGRE,
+		MDL_WIZARD,
 		MDL_POTION,
 		MDL_GOLD,
 		IMG_TITLE,

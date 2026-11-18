@@ -16,3 +16,12 @@ OGRE,DAMAGE_SMALL,60,Charactor/Enemy/Ogre/damage.mv1
 OGRE,DIE,30,Charactor/Enemy/Ogre/die.mv1
 OGRE,ATTACK_2,45,Charactor/Enemy/Ogre/attack_02.mv1
 OGRE,PREV_ATTACK_02,30,Charactor/Enemy/Ogre/prevAttack_02.mv1
+WIZARD,IDLE,30,Charactor/Enemy/Wizard/idle.mv1
+WIZARD,WALK,30,Charactor/Enemy/Wizard/walk.mv1
+WIZARD,RUN,30,Charactor/Enemy/Wizard/run.mv1
+WIZARD,WALK_BACK,30,Charactor/Enemy/Wizard/walkBack.mv1
+WIZARD,PREV_ATTACK,45,Charactor/Enemy/Wizard/prevMagicAttack_01.mv1
+WIZARD,ATTACK_1,45,Charactor/Enemy/Wizard/magicAttack_01.mv1
+WIZARD,DISCOVERY,20,Charactor/Enemy/Wizard/discover.mv1
+WIZARD,DAMAGE_SMALL,60,Charactor/Enemy/Wizard/hit.mv1
+WIZARD,DIE,30,Charactor/Enemy/Wizard/die.mv1

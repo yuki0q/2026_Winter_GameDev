@@ -60,6 +60,9 @@ void ResourceManager::Init(void)
 	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Enemy/Ogre/ogre.mv1");
 	resourcesMap_.emplace(SRC::MDL_OGRE, res);
 
+	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Enemy/Wizard/wizard.mv1");
+	resourcesMap_.emplace(SRC::MDL_WIZARD, res);
+
 	res = new RES(RES_T::MODEL, PATH_MDL + "Charactor/Item/Top.mv1");
 	resourcesMap_.emplace(SRC::MDL_POTION, res);
 

@@ -27,7 +27,9 @@ namespace
 	const float NEAREST_ENEMY_RANGE = 200.0f;
 
 	const int   HITSTOP_FRAME = 10;
-	const float SHAKE_POWER_MAX = 0.008f;	// 画面幅の約0.8%
+
+	// パリィ成功時の画面揺れ
+	const float SHAKE_POWER_MAX = 0.008f;
 
 	// プレイヤーを中心とした範囲の広さ
 	const float SHADOWMAP_RANGE = 800.0f;
@@ -70,13 +72,25 @@ void GameScene::Init(void)
 	projectileManager_->Init();
 	player_->SetOnFireSlash([this](const VECTOR& pos, const VECTOR& dir)
 		{
+			sceMng_.GetCamera()->EndFrontView();
+
 			projectileManager_->SpawnSlash(pos, dir);
+
+			// 斬撃を飛ばした時のイベントカメラ
+			sceMng_.GetCamera()->StartEventShot(Camera::EVENT_SHOT::SLASH);
 		});
 
 	enemyManager_ = std::make_shared<EnemyManager>();
 	enemyManager_->Init();
 
 	enemyManager_->SpawnFromCsv(player_);
+
+	// 魔法を撃つ敵（Wizard）が発射した時に、飛び道具を生成する
+	enemyManager_->SetOnEnemyFireMagic(
+		[this](const VECTOR& pos, const VECTOR& dir, int damage, const EnemyMagicParam& param)
+		{
+			projectileManager_->SpawnMagic(pos, dir, damage, param);
+		});
 
 	// EnemyAlter を倒すたびに回復薬をドロップ
 	enemyManager_->SetOnEnemyDead(
@@ -239,12 +253,17 @@ void GameScene::Update(void)
 	// シーン遷移
 	auto& ins = InputManager::GetInstance();
 
+	/*if (ins.IsTrgDown(KEY_INPUT_Q))
+	{
+		player_->AddUltGage(1000);
+	}*/
+
 	bool IsPause = ins.IsActionTrgDown(InputManager::ACTION::PAUSE);
 	if (!IsPause)
 	{
 		return;
 	}
-	
+
 	SoundManager::GetInstance()->PlaySE(SoundID::SE_WINDOW);
 	sceMng_.ChangeScene(SceneManager::SCENE_ID::PAUSE);
 }
@@ -311,7 +330,7 @@ void GameScene::Draw(void)
 	{
 		itemManager_->DrawBag();
 	}
-	TestDrawShadowMap(shadowMapHandle_, 0, 0, 300, 300);
+	//TestDrawShadowMap(shadowMapHandle_, 0, 0, 300, 300);
 }
 
 void GameScene::Release(void)
@@ -345,11 +364,28 @@ void GameScene::Collision(void)
 	CollisionWeaponToEnemy();
 	CollisionEnemyToPlayer();
 	CollisionParry();
+
 	projectileManager_->CollisionToEnemies(enemyManager_->GetEnemies());
 
 	if (itemManager_)
 	{
 		itemManager_->CheckCollection(player_);
+	}
+
+	// 敵の魔法とプレイヤーの当たり判定
+	for (const auto& hit : projectileManager_->CollisionToPlayer(player_))
+	{
+		if (hit.isParried)
+		{
+			EffekseerEffect::GetInstance()->FireLightEffect(
+				hit.pos, { 7.0f, 7.0f, 7.0f }, { 0.0f, 0.0f, 0.0f });
+			hitStopTimer_ = HITSTOP_FRAME;
+		}
+		else
+		{
+			// 近接攻撃と同じく、受けたダメージ分だけ必殺技ゲージを増やす
+			player_->AddUltGage(hit.damage);
+		}
 	}
 }
 
@@ -650,7 +686,14 @@ void GameScene::CollisionParry(void)
 			// 取得した座標にエフェクトを発生させる
 			EffekseerEffect::GetInstance()->FireLightEffect(effectPos, effectScl, effectRot);
 
+			// パリィ成功時に画面を揺らす
+			//sceMng_.SetShakePower(SHAKE_POWER_MAX);
+
+			// ヒットストップ
 			hitStopTimer_ = HITSTOP_FRAME;
+
+			// パリィ成功のイベントカメラ
+			sceMng_.GetCamera()->StartEventShot(Camera::EVENT_SHOT::PARRY);
 
 			break; // 1回のフレームで1つの敵の攻撃をパリィしたらループを抜ける
 	}
